@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mumaa - Your AI Mama</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Puter.js for powerful client-side AI processing -->
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@400;600;700&display=swap');
+        
+        :root {
+            --kids-yellow: #FFD93D;
+            --kids-pink: #FF6B6B;
+            --kids-blue: #6BCBFF;
+            --kids-green: #4D96FF;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #fdf4ff;
+            user-select: none;
+        }
+
+        .kids-font { font-family: 'Fredoka', sans-serif; }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .kids-glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(15px);
+            border: 4px solid white;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .chat-bubble-ai {
+            background: #ffffff;
+            color: #333;
+            border-radius: 24px 24px 24px 0;
+            border: 3px solid var(--kids-blue);
+            transition: all 0.3s ease;
+        }
+
+        .chat-bubble-user {
+            background: var(--kids-pink);
+            color: white;
+            border-radius: 24px 24px 0 24px;
+            border: 3px solid #ff4d4d;
+        }
+
+        .btn-bubbly {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .btn-bubbly:hover { transform: scale(1.05); filter: brightness(1.05); }
+        .btn-bubbly:active { transform: scale(0.95); }
+
+        .mic-pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.6); }
+            70% { box-shadow: 0 0 0 25px rgba(255, 107, 107, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+        }
+
+        .pointer-events-auto { pointer-events: auto; }
+        
+        aside { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .thinking-bounce {
+            animation: thinking 1.2s infinite ease-in-out;
+        }
+
+        @keyframes thinking {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Responsive UI fixes */
+        @media (max-width: 768px) {
+            aside { position: fixed !important; width: 90% !important; z-index: 50; }
+            #left-panel { left: 5%; bottom: 20px; height: 60vh; }
+            #right-panel { right: 5%; bottom: 20px; height: 60vh; }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="canvas-container"></div>
+
+    <!-- App Shell -->
+    <div class="relative z-10 w-full h-screen flex flex-col md:flex-row pointer-events-none p-4 gap-4 overflow-hidden">
+        
+        <!-- Sidebar: Lesson Controls -->
+        <aside id="left-panel" class="w-80 kids-glass rounded-[40px] flex flex-col pointer-events-auto overflow-hidden shadow-2xl">
+            <div class="p-6 bg-yellow-400 text-white flex justify-between items-center shadow-md">
+                <h2 class="kids-font font-bold text-xl flex items-center gap-2">
+                    <span>📚</span> My Lessons
+                </h2>
+                <button onclick="togglePanel('left-panel')" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 flex-1 overflow-y-auto space-y-6">
+                <div class="space-y-3">
+                    <label class="kids-font text-xs font-bold text-blue-500 uppercase tracking-widest px-2">Lesson Context:</label>
+                    <textarea id="study-material" 
+                        class="w-full h-72 bg-blue-50/50 border-4 border-blue-100 rounded-[30px] p-5 text-sm leading-relaxed outline-none focus:border-blue-400 transition-all resize-none font-sans placeholder:text-blue-300 shadow-inner"
+                        placeholder="Paste information here (e.g. My name is Bunny and I love stars)"></textarea>
+                    
+                    <button id="update-btn" onclick="updateContext()" class="btn-bubbly w-full py-4 bg-blue-500 text-white rounded-[25px] font-bold shadow-lg flex items-center justify-center gap-2">
+                        <span id="update-btn-icon">✨</span> <span id="update-btn-text">Sync with Mumaa</span>
+                    </button>
+                </div>
+                <div class="text-center">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">AI Learning Mode Active</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Interaction Area -->
+        <main class="flex-1 flex flex-col justify-between items-center py-6 relative">
+            <div class="w-full flex justify-between items-start">
+                <button onclick="togglePanel('left-panel')" class="btn-bubbly pointer-events-auto bg-white/90 p-4 rounded-full shadow-lg border-2 border-blue-100 ml-4 lg:hidden">
+                    📚
+                </button>
+
+                <div class="bg-white/90 kids-glass px-12 py-4 rounded-full shadow-2xl pointer-events-auto mx-auto border-4 border-pink-100">
+                    <h1 class="kids-font text-3xl text-pink-500 font-bold tracking-tight">Mumaa</h1>
+                </div>
+
+                <button onclick="openParentGate()" class="btn-bubbly pointer-events-auto bg-white/90 p-4 rounded-full shadow-lg border-4 border-blue-50 mr-4">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </button>
+            </div>
+
+            <div class="flex flex-col items-center gap-8 pointer-events-auto mb-12">
+                <div id="status-tag" class="bg-white/95 px-10 py-4 rounded-full text-xl font-bold text-pink-500 border-4 border-pink-100 opacity-0 transition-all shadow-xl">
+                    Listening...
+                </div>
+                
+                <div class="relative group">
+                    <div id="mic-halo" class="absolute -inset-4 bg-pink-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <button id="mic-btn" onclick="toggleVoiceSession()" class="btn-bubbly w-28 h-28 bg-pink-500 rounded-full shadow-2xl flex items-center justify-center border-[10px] border-white z-20 relative">
+                        <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="bg-white/80 backdrop-blur-sm px-8 py-3 rounded-full border-2 border-white shadow-sm">
+                    <p id="instruction-text" class="kids-font text-sm text-blue-500 font-bold uppercase tracking-widest">Tap to talk to Mumaa</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Conversation Log -->
+        <aside id="right-panel" class="w-80 kids-glass rounded-[40px] flex flex-col pointer-events-auto overflow-hidden shadow-2xl">
+            <div class="p-6 bg-blue-400 text-white flex justify-between items-center shadow-md">
+                <h2 class="kids-font font-bold text-xl flex items-center gap-2">
+                    <span>💬</span> Chat
+                </h2>
+                <button onclick="togglePanel('right-panel')" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"></div>
+
+            <div class="p-6 bg-blue-50/80 border-t-2 border-blue-100">
+                <div class="bg-white rounded-[25px] flex items-center p-4 gap-3 border-4 border-blue-100 shadow-inner">
+                    <input type="text" id="text-input" placeholder="Type a hello..." class="bg-transparent border-none outline-none text-sm flex-1 px-1 font-bold text-blue-600 placeholder:text-blue-200">
+                    <button onclick="sendTextMessage()" class="text-blue-500 hover:text-blue-600 transition-transform active:scale-90">
+                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modals -->
+    <div id="parent-gate" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4">
+        <div class="kids-glass p-10 rounded-[50px] max-w-sm w-full text-center space-y-8 border-8 border-yellow-400 shadow-2xl">
+            <h2 class="kids-font text-3xl text-blue-500">Parent Check 🔐</h2>
+            <p id="gate-question" class="font-bold text-xl text-slate-600 bg-yellow-50 py-3 rounded-2xl"></p>
+            <input type="number" id="gate-answer" placeholder="?" class="w-full p-6 border-4 border-blue-100 rounded-[30px] text-center text-3xl font-bold text-blue-600 outline-none focus:border-blue-400 shadow-inner">
+            <div class="flex gap-4">
+                <button onclick="checkParentGate()" class="btn-bubbly flex-1 py-5 bg-blue-500 text-white rounded-[25px] font-bold text-xl">Enter</button>
+                <button onclick="closeModals()" class="btn-bubbly px-8 py-5 bg-slate-100 text-slate-400 rounded-[25px] font-bold">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="parent-settings" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4">
+        <div class="kids-glass p-10 rounded-[50px] max-w-3xl w-full max-h-[85vh] overflow-y-auto space-y-10 border-8 border-blue-400 shadow-2xl">
+            <div class="flex justify-between items-center border-b-4 border-blue-50 pb-6">
+                <h2 class="kids-font text-4xl text-pink-500">Mama's Kitchen 🛠️</h2>
+                <button onclick="closeModals()" class="text-slate-300 hover:text-slate-500 text-3xl">✕</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div class="space-y-6">
+                    <h3 class="kids-font text-2xl text-blue-500">Child's Profile</h3>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">First Name</label>
+                        <input type="text" id="kid-name" placeholder="Little Bunny" class="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Current Age</label>
+                        <input type="number" id="kid-age" placeholder="5" class="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Special Interests</label>
+                        <input type="text" id="kid-interests" placeholder="Space, Cats, Painting" class="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400">
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <h3 class="kids-font text-2xl text-yellow-500">Audio Experience</h3>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Mama's Voice Engine</label>
+                        <select id="voice-selector" class="w-full p-4 bg-yellow-50 border-2 border-yellow-100 rounded-2xl outline-none focus:border-yellow-400 font-semibold text-sm">
+                        </select>
+                    </div>
+                    <div class="p-6 bg-pink-50 rounded-[30px] border-2 border-pink-100">
+                        <p class="text-xs text-pink-400 leading-relaxed font-medium italic">All audio is processed locally on your device for maximum privacy.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Learning Mission for Today</label>
+                <textarea id="learning-goal" placeholder="Focus on counting today!" class="w-full h-32 p-5 bg-green-50 border-2 border-green-100 rounded-[30px] font-semibold outline-none focus:border-green-400 resize-none shadow-inner"></textarea>
+            </div>
+
+            <button onclick="saveParentSettings()" class="btn-bubbly w-full py-6 bg-pink-500 text-white rounded-[30px] font-bold text-2xl shadow-xl shadow-pink-200 uppercase tracking-widest">Apply Sync ✨</button>
+        </div>
+    </div>
+
+    <!-- Preloader -->
+    <div id="loader" class="fixed inset-0 z-[100] bg-blue-400 flex flex-col items-center justify-center text-white">
+        <div class="relative w-32 h-32 mb-8">
+             <div class="absolute inset-0 border-[10px] border-white/20 rounded-full"></div>
+             <div class="absolute inset-0 border-[10px] border-white border-t-transparent rounded-full animate-spin"></div>
+             <span class="absolute inset-0 flex items-center justify-center text-5xl">🍭</span>
+        </div>
+        <h2 class="kids-font font-bold text-4xl tracking-wide animate-pulse">Initializing Mumaa...</h2>
+    </div>
+
+    <script>
+        // --- GLOBAL STATE & CONFIG ---
+        let studyContext = "";
+        let isListening = false;
+        let isSpeaking = false;
+        let isThinking = false;
+        let serialMode = false;
+        let voicesLoaded = false;
+        let currentUtterance = null;
+        let speechUnlocked = false; 
+        
+        let parentConfig = {
+            kidName: "",
+            kidAge: "",
+            kidInterests: "",
+            learningGoal: "",
+            preferredVoiceName: ""
+        };
+
+        let gateCorrectAnswer = 0;
+
+        // --- THREE.JS ENGINE ---
+        let scene, camera, renderer, head, mouth, leftEye, rightEye, mumaaAvatar;
+        let clock = new THREE.Clock();
+
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdceeff);
+
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.4, 3.8);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+            scene.add(ambientLight);
+            const sunLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            sunLight.position.set(5, 12, 10);
+            scene.add(sunLight);
+
+            createPlayroom();
+            createMumaa();
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+            
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    loader.classList.add('opacity-0');
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }
+                populateVoiceList();
+            }, 2000);
+        }
+
+        function createPlayroom() {
+            const floorGeo = new THREE.PlaneGeometry(25, 25);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xeedcb1 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.5;
+            scene.add(floor);
+
+            const wallGeo = new THREE.PlaneGeometry(35, 20);
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xfff9e6 });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.z = -3.5;
+            scene.add(wall);
+
+            const colors = [0xFF6B6B, 0x4D96FF, 0x6BCBFF, 0xFFD93D, 0x6BCB77, 0xFFA07A];
+            for(let i=0; i<15; i++) {
+                const blockGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
+                const blockMat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 0.2 });
+                const block = new THREE.Mesh(blockGeo, blockMat);
+                block.position.set((Math.random() - 0.5) * 10, -0.27, (Math.random() - 0.5) * 5 - 1.5);
+                block.rotation.y = Math.random() * Math.PI;
+                scene.add(block);
+            }
+        }
+
+        function createMumaa() {
+            mumaaAvatar = new THREE.Group();
+            
+            const headGroup = new THREE.Group();
+            const headGeo = new THREE.SphereGeometry(0.45, 64, 64);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.5 });
+            head = new THREE.Mesh(headGeo, headMat);
+            headGroup.add(head);
+
+            const noseGeo = new THREE.SphereGeometry(0.04, 16, 16);
+            const nose = new THREE.Mesh(noseGeo, headMat);
+            nose.position.set(0, -0.05, 0.43);
+            nose.scale.set(1, 1.2, 0.8);
+            headGroup.add(nose);
+
+            const earGeo = new THREE.SphereGeometry(0.08, 16, 16);
+            const lEar = new THREE.Mesh(earGeo, headMat);
+            lEar.position.set(-0.44, 0, 0);
+            lEar.scale.set(0.5, 1, 0.8);
+            headGroup.add(lEar);
+            const rEar = new THREE.Mesh(earGeo, headMat);
+            rEar.position.set(0.44, 0, 0);
+            rEar.scale.set(0.5, 1, 0.8);
+            headGroup.add(rEar);
+
+            headGroup.position.y = 1.35;
+            mumaaAvatar.add(headGroup);
+
+            const hairGroup = new THREE.Group();
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0x2b1e16, roughness: 0.8 });
+            const mainHair = new THREE.Mesh(new THREE.SphereGeometry(0.48, 64, 64, 0, Math.PI * 2, 0, Math.PI / 1.6), hairMat);
+            hairGroup.add(mainHair);
+            
+            const sideHairL = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), hairMat);
+            sideHairL.position.set(-0.35, -0.1, -0.1);
+            sideHairL.scale.set(1, 1.5, 1);
+            hairGroup.add(sideHairL);
+            const sideHairR = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), hairMat);
+            sideHairR.position.set(0.35, -0.1, -0.1);
+            sideHairR.scale.set(1, 1.5, 1);
+            hairGroup.add(sideHairR);
+
+            hairGroup.position.y = 1.39;
+            mumaaAvatar.add(hairGroup);
+
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 });
+            const frameGeo = new THREE.TorusGeometry(0.09, 0.015, 16, 40);
+            const lFrame = new THREE.Mesh(frameGeo, frameMat);
+            lFrame.position.set(-0.16, 1.38, 0.42);
+            mumaaAvatar.add(lFrame);
+            const rFrame = new THREE.Mesh(frameGeo, frameMat);
+            rFrame.position.set(0.16, 1.38, 0.42);
+            mumaaAvatar.add(rFrame);
+            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.02), frameMat);
+            bridge.position.set(0, 1.38, 0.42);
+            mumaaAvatar.add(bridge);
+
+            const scleraMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const irisMat = new THREE.MeshStandardMaterial({ color: 0x4a3728 });
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+            function createEye() {
+                const group = new THREE.Group();
+                const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 32), scleraMat);
+                group.add(sclera);
+                
+                const iris = new THREE.Mesh(new THREE.CircleGeometry(0.03, 32), irisMat);
+                iris.position.set(0, 0, 0.049);
+                group.add(iris);
+                
+                const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.015, 32), pupilMat);
+                pupil.position.set(0, 0, 0.05);
+                group.add(pupil);
+                return group;
+            }
+
+            leftEye = createEye();
+            leftEye.position.set(-0.16, 1.38, 0.38);
+            mumaaAvatar.add(leftEye);
+
+            rightEye = createEye();
+            rightEye.position.set(0.16, 1.38, 0.38);
+            mumaaAvatar.add(rightEye);
+
+            const mouthGeo = new THREE.TorusGeometry(0.06, 0.02, 16, 32, Math.PI);
+            const mouthMat = new THREE.MeshStandardMaterial({ color: 0xcc4444 });
+            mouth = new THREE.Mesh(mouthGeo, mouthMat);
+            mouth.position.set(0, 1.18, 0.42);
+            mouth.rotation.x = Math.PI;
+            mumaaAvatar.add(mouth);
+
+            const bodyGroup = new THREE.Group();
+            const neckGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.2, 32);
+            const neck = new THREE.Mesh(neckGeo, headMat);
+            neck.position.y = 0.95;
+            bodyGroup.add(neck);
+
+            const torsoGeo = new THREE.CylinderGeometry(0.35, 0.6, 1.3, 32);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: 0xFF8AAE, roughness: 0.9 });
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            torso.position.y = 0.3;
+            bodyGroup.add(torso);
+
+            const collarGeo = new THREE.TorusGeometry(0.15, 0.03, 16, 32);
+            const collar = new THREE.Mesh(collarGeo, torsoMat);
+            collar.rotation.x = Math.PI/2;
+            collar.position.y = 0.9;
+            bodyGroup.add(collar);
+
+            mumaaAvatar.add(bodyGroup);
+            scene.add(mumaaAvatar);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const t = clock.getElapsedTime();
+            if (mumaaAvatar) {
+                mumaaAvatar.position.y = Math.sin(t * 1.3) * 0.03;
+                head.rotation.y = Math.sin(t * 0.4) * 0.12;
+                head.rotation.z = Math.sin(t * 0.3) * 0.05;
+                
+                if (isThinking) {
+                    head.rotation.x = Math.sin(t * 5) * 0.1;
+                }
+
+                const blink = (Math.sin(t * 0.6) > 0.98);
+                leftEye.scale.y = rightEye.scale.y = blink ? 0.1 : 1;
+            }
+            
+            if (isSpeaking && mouth) {
+                const scaleM = 1 + Math.abs(Math.sin(t * 16)) * 2.8;
+                mouth.scale.set(1.5, scaleM, 1);
+            } else if (mouth) {
+                mouth.scale.set(1.3, 0.15, 1);
+            }
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function openParentGate() {
+            const n1 = Math.floor(Math.random() * 10) + 12;
+            const n2 = Math.floor(Math.random() * 8) + 2;
+            gateCorrectAnswer = n1 + n2;
+            document.getElementById('gate-question').innerText = `Parents: What is ${n1} + ${n2}?`;
+            const gateInput = document.getElementById('gate-answer');
+            if (gateInput) gateInput.value = "";
+            document.getElementById('parent-gate').classList.remove('hidden');
+        }
+
+        function checkParentGate() {
+            const gateInput = document.getElementById('gate-answer');
+            if (!gateInput) return;
+            const ans = parseInt(gateInput.value);
+            if (ans === gateCorrectAnswer) {
+                document.getElementById('parent-gate').classList.add('hidden');
+                document.getElementById('parent-settings').classList.remove('hidden');
+                unlockSpeech();
+            } else { openParentGate(); }
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+        }
+
+        function populateVoiceList() {
+            const selector = document.getElementById('voice-selector');
+            if (!selector) return;
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                selector.innerHTML = voices
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(v => `<option value="${v.name}" ${v.default ? 'selected' : ''}>${v.name} (${v.lang})</option>`)
+                    .join('');
+                voicesLoaded = true;
+            }
+        }
+
+        function unlockSpeech() {
+            if (speechUnlocked) return;
+            try {
+                window.speechSynthesis.resume();
+                window.speechSynthesis.cancel();
+                const silent = new SpeechSynthesisUtterance(" ");
+                silent.volume = 0;
+                window.speechSynthesis.speak(silent);
+                speechUnlocked = true;
+                console.log("Audio unlocked");
+            } catch(e) { console.error("Audio unlock failed", e); }
+        }
+
+        function saveParentSettings() {
+            unlockSpeech();
+            parentConfig = {
+                kidName: document.getElementById('kid-name').value.trim(),
+                kidAge: document.getElementById('kid-age').value.trim(),
+                kidInterests: document.getElementById('kid-interests').value.trim(),
+                learningGoal: document.getElementById('learning-goal').value.trim(),
+                preferredVoiceName: document.getElementById('voice-selector').value
+            };
+            closeModals();
+            addChatMessage("Sync complete! Mama is now ready for our adventure.", "ai");
+            speak(`Settings sync successful. Hello there! Mama is ready to help now.`);
+        }
+
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+
+        function toggleVoiceSession() {
+            unlockSpeech();
+            if (isListening) {
+                recognition.stop();
+                serialMode = false;
+            } else {
+                serialMode = true;
+                startVoiceInput();
+            }
+        }
+
+        function startVoiceInput() {
+            if (isSpeaking || isListening || isThinking) return;
+            try { isSpeaking = false; recognition.start(); } catch(e) {}
+        }
+
+        recognition.onstart = () => {
+            isListening = true;
+            document.getElementById('mic-btn').classList.add('mic-pulse');
+            document.getElementById('mic-halo').classList.remove('opacity-0');
+            const statusTag = document.getElementById('status-tag');
+            statusTag.style.opacity = "1";
+            statusTag.innerText = "Listening...";
+        };
+
+        recognition.onresult = (e) => {
+            const text = e.results[0][0].transcript;
+            addChatMessage(text, 'user');
+            processAI(text);
+        };
+
+        recognition.onend = () => {
+            isListening = false;
+            document.getElementById('mic-btn').classList.remove('mic-pulse');
+            document.getElementById('mic-halo').classList.add('opacity-0');
+            if (!isThinking && !isSpeaking) document.getElementById('status-tag').style.opacity = "0";
+        };
+
+        async function processAI(userText) {
+            isThinking = true;
+            const statusTag = document.getElementById('status-tag');
+            statusTag.innerText = "Thinking...";
+            statusTag.style.opacity = "1";
+            statusTag.classList.add('thinking-bounce');
+
+            studyContext = document.getElementById('study-material').value.trim();
+
+            const prompt = `You are Mumaa, a loving teacher. Kid: ${parentConfig.kidName}, Age: ${parentConfig.kidAge}. Notes: ${studyContext || "None"}. Rules: NO EMOJIS. Motherly tone. 2-3 sentences max. Question: ${userText}`;
+            
+            try {
+                const response = await puter.ai.chat(prompt);
+                const aiMsg = response.toString();
+                addChatMessage(aiMsg, 'ai');
+                
+                // Clear Thinking state BEFORE speaking
+                isThinking = false;
+                statusTag.classList.remove('thinking-bounce');
+                statusTag.style.opacity = "0";
+
+                await speak(aiMsg);
+            } catch (err) {
+                isThinking = false;
+                statusTag.classList.remove('thinking-bounce');
+                statusTag.style.opacity = "0";
+                speak("Mama had a tiny hiccup. Let's try again, darling.");
+            }
+        }
+
+        async function speak(text) {
+            if (!text) return;
+            return new Promise((resolve) => {
+                // Ensure engine is active
+                window.speechSynthesis.resume();
+                window.speechSynthesis.cancel();
+
+                // Safety timeout: forced unblock after 10 seconds
+                const safetyTimeout = setTimeout(() => {
+                    isSpeaking = false;
+                    document.getElementById('status-tag').style.opacity = "0";
+                    resolve();
+                }, 10000);
+
+                setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    currentUtterance = utterance; // Prevent garbage collection
+
+                    const voices = window.speechSynthesis.getVoices();
+                    let targetVoice = voices.find(v => v.name === parentConfig.preferredVoiceName);
+
+                    if (!targetVoice) {
+                        const searchList = ['Microsoft Aria Online', 'Microsoft Jenny Online', 'Google US English Female', 'Samantha', 'Victoria', 'Female'];
+                        for (let n of searchList) {
+                            targetVoice = voices.find(v => v.name.includes(n));
+                            if (targetVoice) break;
+                        }
+                    }
+
+                    if (!targetVoice) targetVoice = voices[0];
+
+                    utterance.voice = targetVoice;
+                    utterance.pitch = 1.25; 
+                    utterance.rate = 0.94;  
+
+                    utterance.onstart = () => {
+                        isSpeaking = true;
+                        isThinking = false;
+                        const statusTag = document.getElementById('status-tag');
+                        statusTag.innerText = "Speaking...";
+                        statusTag.style.opacity = "1";
+                        statusTag.classList.remove('thinking-bounce');
+                    };
+
+                    utterance.onend = () => {
+                        clearTimeout(safetyTimeout);
+                        isSpeaking = false;
+                        document.getElementById('status-tag').style.opacity = "0";
+                        currentUtterance = null;
+                        if (serialMode) setTimeout(startVoiceInput, 1000);
+                        resolve();
+                    };
+
+                    utterance.onerror = (e) => {
+                        clearTimeout(safetyTimeout);
+                        console.error("Speech failure:", e);
+                        isSpeaking = false;
+                        document.getElementById('status-tag').style.opacity = "0";
+                        resolve();
+                    };
+
+                    window.speechSynthesis.speak(utterance);
+                    
+                    // Keep Chrome's engine alive
+                    const resumeInt = setInterval(() => {
+                        if (isSpeaking) window.speechSynthesis.resume();
+                        else clearInterval(resumeInt);
+                    }, 2000);
+
+                }, 150);
+            });
+        }
+
+        function addChatMessage(text, role) {
+            const container = document.getElementById('chat-container');
+            if (!container) return;
+            const div = document.createElement('div');
+            div.className = `p-4 text-sm font-bold shadow-md animate-in fade-in slide-in-from-bottom-3 duration-500 ${role === 'user' ? 'chat-bubble-user ml-10' : 'chat-bubble-ai mr-10'}`;
+            div.innerText = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateContext() {
+            unlockSpeech();
+            studyContext = document.getElementById('study-material').value.trim();
+            const btn = document.getElementById('update-btn');
+            if (btn) {
+                btn.classList.replace('bg-blue-500', 'bg-green-500');
+                const btnText = document.getElementById('update-btn-text');
+                if (btnText) btnText.innerText = "Synced! ✅";
+                
+                setTimeout(() => {
+                    btn.classList.replace('bg-green-500', 'bg-blue-500');
+                    if (btnText) btnText.innerText = "Sync with Mumaa";
+                }, 2500);
+            }
+
+            addChatMessage("I've remembered your special notes!", "ai");
+            speak("I have read your notes, sweetie. I am ready!");
+        }
+
+        function togglePanel(id) {
+            const panel = document.getElementById(id);
+            if (!panel) return;
+            const isLeft = id === 'left-panel';
+            panel.style.transform = panel.style.transform ? '' : `translateX(${isLeft ? '-115%' : '115%'})`;
+        }
+
+        function sendTextMessage() {
+            unlockSpeech();
+            const input = document.getElementById('text-input');
+            if (!input) return;
+            const text = input.value.trim();
+            if (text) {
+                addChatMessage(text, 'user');
+                processAI(text);
+                input.value = "";
+            }
+        }
+
+        const textInput = document.getElementById('text-input');
+        if (textInput) {
+            textInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendTextMessage();
+            });
+        }
+
+        if (typeof window.speechSynthesis !== 'undefined') {
+            window.speechSynthesis.onvoiceschanged = populateVoiceList;
+            populateVoiceList();
+        }
+        
+        window.onload = initThree;
+    </script>
+</body>
+</html>
