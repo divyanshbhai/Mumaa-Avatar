@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mumaa - Your AI Mama</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -24,84 +24,134 @@
             overflow: hidden;
             background-color: #fdf4ff;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .kids-font { font-family: 'Fredoka', sans-serif; }
 
+        /* 3D Background */
         #canvas-container {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1;
+            z-index: 0;
         }
 
+        /* Glassmorphism Panels */
         .kids-glass {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(15px);
-            border: 4px solid white;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0,0,0,0.05);
         }
 
+        /* Chat Bubbles */
         .chat-bubble-ai {
             background: #ffffff;
             color: #333;
-            border-radius: 24px 24px 24px 0;
+            border-radius: 24px 24px 24px 4px;
             border: 3px solid var(--kids-blue);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            max-width: 85%;
         }
 
         .chat-bubble-user {
             background: var(--kids-pink);
             color: white;
-            border-radius: 24px 24px 0 24px;
+            border-radius: 24px 24px 4px 24px;
             border: 3px solid #ff4d4d;
+            box-shadow: 0 4px 6px rgba(255, 107, 107, 0.3);
+            max-width: 85%;
+            margin-left: auto;
         }
 
+        /* Button Animations */
         .btn-bubbly {
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
         }
-
-        .btn-bubbly:hover { transform: scale(1.05); filter: brightness(1.05); }
+        .btn-bubbly:hover { transform: scale(1.08); filter: brightness(1.05); }
         .btn-bubbly:active { transform: scale(0.95); }
 
+        /* Mic Animation */
         .mic-pulse {
             animation: pulse 1.5s infinite;
         }
-
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.6); }
-            70% { box-shadow: 0 0 0 25px rgba(255, 107, 107, 0); }
+            70% { box-shadow: 0 0 0 20px rgba(255, 107, 107, 0); }
             100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
         }
 
-        .pointer-events-auto { pointer-events: auto; }
-        
-        aside { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-
+        /* Thinking Animation */
         .thinking-bounce {
             animation: thinking 1.2s infinite ease-in-out;
         }
-
         @keyframes thinking {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-8px); }
         }
 
+        /* Modals */
         .modal-overlay {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
             z-index: 100;
             transition: opacity 0.3s ease;
+            display: none; 
         }
 
-        /* Responsive UI fixes */
+        /* Transitions for Sidebar */
+        aside {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            z-index: 50;
+        }
+        
+        /* Sidebar States */
+        .panel-hidden-left { transform: translateX(-120%); opacity: 0; pointer-events: none; }
+        .panel-hidden-right { transform: translateX(120%); opacity: 0; pointer-events: none; }
+        .panel-visible { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+        /* Reopen Handles */
+        .reopen-handle {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 40;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            /* Hidden by default, shown via JS class */
+            display: none; 
+        }
+        .reopen-visible { display: block; animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        
+        @keyframes popIn {
+            from { transform: translateY(-50%) scale(0); }
+            to { transform: translateY(-50%) scale(1); }
+        }
+
+        .pointer-events-auto { pointer-events: auto; }
+        .pointer-events-none { pointer-events: none; }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+
+        /* Mobile specific adjustments */
         @media (max-width: 768px) {
-            aside { position: fixed !important; width: 90% !important; z-index: 50; }
-            #left-panel { left: 5%; bottom: 20px; height: 60vh; }
-            #right-panel { right: 5%; bottom: 20px; height: 60vh; }
+            aside { position: fixed !important; width: 92% !important; height: 70vh !important; bottom: 20px; top: auto; border-radius: 30px; }
+            #left-panel { left: 4%; }
+            #right-panel { right: 4%; }
+            /* Mobile hide states move down instead of side to be cleaner */
+            .panel-hidden-left { transform: translateY(120%); }
+            .panel-hidden-right { transform: translateY(120%); }
+            
+            .reopen-handle { top: auto; bottom: 100px; transform: none; }
+            .reopen-visible { animation: popUpMobile 0.4s ease; }
         }
     </style>
 </head>
@@ -109,12 +159,16 @@
 
     <div id="canvas-container"></div>
 
-    <!-- App Shell -->
-    <div class="relative z-10 w-full h-screen flex flex-col md:flex-row pointer-events-none p-4 gap-4 overflow-hidden">
+    <!-- Reopen Buttons (Initially Hidden) -->
+    <button id="reopen-left" onclick="togglePanel('left-panel')" class="reopen-handle left-0 kids-glass p-4 rounded-r-3xl text-2xl btn-bubbly border-l-0 shadow-lg text-blue-500 hover:text-blue-600">📚</button>
+    <button id="reopen-right" onclick="togglePanel('right-panel')" class="reopen-handle right-0 kids-glass p-4 rounded-l-3xl text-2xl btn-bubbly border-r-0 shadow-lg text-pink-500 hover:text-pink-600">💬</button>
+
+    <!-- Main Layout -->
+    <div class="relative z-10 w-full h-screen flex flex-col md:flex-row pointer-events-none p-2 md:p-4 gap-4 overflow-hidden">
         
-        <!-- Sidebar: Lesson Controls -->
-        <aside id="left-panel" class="w-80 kids-glass rounded-[40px] flex flex-col pointer-events-auto overflow-hidden shadow-2xl">
-            <div class="p-6 bg-yellow-400 text-white flex justify-between items-center shadow-md">
+        <!-- LEFT PANEL: Lessons -->
+        <aside id="left-panel" class="w-80 panel-visible kids-glass rounded-[40px] flex flex-col overflow-hidden shadow-2xl flex-shrink-0">
+            <div class="p-5 bg-yellow-400 text-white flex justify-between items-center shadow-md">
                 <h2 class="kids-font font-bold text-xl flex items-center gap-2">
                     <span>📚</span> My Lessons
                 </h2>
@@ -123,67 +177,67 @@
                 </button>
             </div>
             
-            <div class="p-6 flex-1 overflow-y-auto space-y-6">
-                <div class="space-y-3">
-                    <label class="kids-font text-xs font-bold text-blue-500 uppercase tracking-widest px-2">Lesson Context:</label>
+            <div class="p-5 flex-1 overflow-y-auto space-y-4">
+                <div class="space-y-2">
+                    <label class="kids-font text-xs font-bold text-blue-500 uppercase tracking-widest px-2">Memory Bank (RAG):</label>
                     <textarea id="study-material" 
-                        class="w-full h-72 bg-blue-50/50 border-4 border-blue-100 rounded-[30px] p-5 text-sm leading-relaxed outline-none focus:border-blue-400 transition-all resize-none font-sans placeholder:text-blue-300 shadow-inner"
-                        placeholder="Paste information here (e.g. My name is Bunny and I love stars)"></textarea>
+                        class="w-full h-64 bg-yellow-50/50 border-4 border-yellow-200 rounded-[25px] p-4 text-sm leading-relaxed outline-none focus:border-yellow-400 transition-all resize-none font-sans placeholder:text-yellow-300/70 shadow-inner text-slate-600"
+                        placeholder="Type facts Mumaa should remember here.&#10;Ex: 'Grandma lives in Delhi' or 'My dog's name is Bruno'."></textarea>
                     
-                    <button id="update-btn" onclick="updateContext()" class="btn-bubbly w-full py-4 bg-blue-500 text-white rounded-[25px] font-bold shadow-lg flex items-center justify-center gap-2">
-                        <span id="update-btn-icon">✨</span> <span id="update-btn-text">Sync with Mumaa</span>
+                    <button id="update-btn" onclick="updateContext()" class="btn-bubbly w-full py-3 bg-blue-500 text-white rounded-[20px] font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors">
+                        <span id="update-btn-icon">✨</span> <span id="update-btn-text">Teach Mumaa</span>
                     </button>
                 </div>
-                <div class="text-center">
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">AI Learning Mode Active</p>
+                <div class="text-center bg-white/40 p-3 rounded-2xl border-2 border-white">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase">Mumaa will prioritize this info.</p>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Interaction Area -->
-        <main class="flex-1 flex flex-col justify-between items-center py-6 relative">
-            <div class="w-full flex justify-between items-start">
-                <button onclick="togglePanel('left-panel')" class="btn-bubbly pointer-events-auto bg-white/90 p-4 rounded-full shadow-lg border-2 border-blue-100 ml-4 lg:hidden">
-                    📚
-                </button>
+        <!-- CENTER: Avatar & Mic -->
+        <main class="flex-1 flex flex-col justify-between items-center py-4 relative h-full">
+            <!-- Header -->
+            <div class="w-full flex justify-between items-start px-2">
+                <div class="w-12"></div> <!-- Spacer -->
 
-                <div class="bg-white/90 kids-glass px-12 py-4 rounded-full shadow-2xl pointer-events-auto mx-auto border-4 border-pink-100">
-                    <h1 class="kids-font text-3xl text-pink-500 font-bold tracking-tight">Mumaa</h1>
+                <div class="bg-white/80 backdrop-blur-md px-10 py-3 rounded-full shadow-lg pointer-events-auto mx-auto border-4 border-white/50 animate-bounce-in">
+                    <h1 class="kids-font text-3xl text-pink-500 font-bold tracking-tight drop-shadow-sm">Mumaa</h1>
                 </div>
 
-                <button onclick="openParentGate()" class="btn-bubbly pointer-events-auto bg-white/90 p-4 rounded-full shadow-lg border-4 border-blue-50 mr-4">
-                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <button onclick="openParentGate()" class="btn-bubbly pointer-events-auto bg-white/90 p-3 rounded-full shadow-lg border-4 border-white/50 mr-2 text-blue-400 hover:text-blue-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 </button>
             </div>
 
-            <div class="flex flex-col items-center gap-8 pointer-events-auto mb-12">
-                <div id="status-tag" class="bg-white/95 px-10 py-4 rounded-full text-xl font-bold text-pink-500 border-4 border-pink-100 opacity-0 transition-all shadow-xl">
+            <!-- Mic Controls -->
+            <div class="flex flex-col items-center gap-6 pointer-events-auto mb-8 md:mb-12 w-full max-w-md mx-auto">
+                <div id="status-tag" class="bg-white/90 backdrop-blur-sm px-8 py-2 rounded-full text-lg font-bold text-pink-500 border-2 border-pink-100 opacity-0 transition-opacity duration-300 shadow-md transform translate-y-2">
                     Listening...
                 </div>
                 
                 <div class="relative group">
-                    <div id="mic-halo" class="absolute -inset-4 bg-pink-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <button id="mic-btn" onclick="toggleVoiceSession()" class="btn-bubbly w-28 h-28 bg-pink-500 rounded-full shadow-2xl flex items-center justify-center border-[10px] border-white z-20 relative">
-                        <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div id="mic-halo" class="absolute -inset-6 bg-pink-400/30 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <button id="mic-btn" onclick="toggleVoiceSession()" class="btn-bubbly w-24 h-24 md:w-28 md:h-28 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full shadow-2xl flex items-center justify-center border-[8px] border-white z-20 relative text-white">
+                        <svg id="mic-icon" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 md:h-12 md:w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                         </svg>
                     </button>
                 </div>
 
-                <div class="bg-white/80 backdrop-blur-sm px-8 py-3 rounded-full border-2 border-white shadow-sm">
-                    <p id="instruction-text" class="kids-font text-sm text-blue-500 font-bold uppercase tracking-widest">Tap to talk to Mumaa</p>
+                <div class="bg-white/60 backdrop-blur-md px-6 py-2 rounded-full border border-white/60 shadow-sm text-center">
+                    <p id="instruction-text" class="kids-font text-xs md:text-sm text-blue-500 font-bold uppercase tracking-widest">Tap to talk to Mumaa</p>
                 </div>
             </div>
         </main>
 
-        <!-- Right Panel: Conversation Log -->
-        <aside id="right-panel" class="w-80 kids-glass rounded-[40px] flex flex-col pointer-events-auto overflow-hidden shadow-2xl">
-            <div class="p-6 bg-blue-400 text-white flex justify-between items-center shadow-md">
+        <!-- RIGHT PANEL: Chat -->
+        <aside id="right-panel" class="w-80 panel-visible kids-glass rounded-[40px] flex flex-col overflow-hidden shadow-2xl flex-shrink-0">
+            <div class="p-5 bg-blue-400 text-white flex justify-between items-center shadow-md">
                 <h2 class="kids-font font-bold text-xl flex items-center gap-2">
                     <span>💬</span> Chat
                 </h2>
                 <div class="flex gap-2">
-                    <button onclick="clearChatHistory()" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors" title="Clear Chat">
+                    <button onclick="openModal('confirm-modal')" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors" title="Clear Chat">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                     <button onclick="togglePanel('right-panel')" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors">
@@ -192,346 +246,484 @@
                 </div>
             </div>
 
-            <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"></div>
+            <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth"></div>
 
-            <div class="p-6 bg-blue-50/80 border-t-2 border-blue-100">
-                <div class="bg-white rounded-[25px] flex items-center p-4 gap-3 border-4 border-blue-100 shadow-inner">
-                    <input type="text" id="text-input" placeholder="Type a hello..." class="bg-transparent border-none outline-none text-sm flex-1 px-1 font-bold text-blue-600 placeholder:text-blue-200">
-                    <button onclick="sendTextMessage()" class="text-blue-500 hover:text-blue-600 transition-transform active:scale-90">
-                        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+            <div class="p-4 bg-white/50 border-t-2 border-white">
+                <div class="bg-white rounded-[25px] flex items-center p-2 px-3 gap-2 border-2 border-blue-100 shadow-sm focus-within:border-blue-300 focus-within:shadow-md transition-all">
+                    <input type="text" id="text-input" placeholder="Say hello..." class="bg-transparent border-none outline-none text-sm flex-1 font-bold text-slate-600 placeholder:text-slate-300 h-10">
+                    <button onclick="sendTextMessage()" class="text-blue-500 hover:text-blue-600 transition-transform active:scale-90 p-1">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
                     </button>
                 </div>
             </div>
         </aside>
     </div>
 
-    <!-- Modals -->
-    <div id="parent-gate" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4">
-        <div class="kids-glass p-10 rounded-[50px] max-w-sm w-full text-center space-y-8 border-8 border-yellow-400 shadow-2xl">
+    <!-- PARENT GATE MODAL -->
+    <div id="parent-gate" class="fixed inset-0 modal-overlay items-center justify-center p-4">
+        <div class="kids-glass p-8 rounded-[40px] max-w-sm w-full text-center space-y-6 border-8 border-yellow-300 shadow-2xl animate-[fadeIn_0.3s_ease-out]">
             <h2 class="kids-font text-3xl text-blue-500">Parent Check 🔐</h2>
-            <p id="gate-question" class="font-bold text-xl text-slate-600 bg-yellow-50 py-3 rounded-2xl"></p>
-            <input type="number" id="gate-answer" placeholder="?" class="w-full p-6 border-4 border-blue-100 rounded-[30px] text-center text-3xl font-bold text-blue-600 outline-none focus:border-blue-400 shadow-inner">
-            <div class="flex gap-4">
-                <button onclick="checkParentGate()" class="btn-bubbly flex-1 py-5 bg-blue-500 text-white rounded-[25px] font-bold text-xl">Enter</button>
-                <button onclick="closeModals()" class="btn-bubbly px-8 py-5 bg-slate-100 text-slate-400 rounded-[25px] font-bold">Exit</button>
+            <p id="gate-question" class="font-bold text-xl text-slate-600 bg-yellow-50 py-3 rounded-2xl border-2 border-yellow-100"></p>
+            <input type="number" id="gate-answer" placeholder="?" class="w-full p-4 border-4 border-blue-100 rounded-[25px] text-center text-3xl font-bold text-blue-500 outline-none focus:border-blue-400 shadow-inner bg-blue-50/50">
+            <div class="flex gap-3">
+                <button onclick="checkParentGate()" class="btn-bubbly flex-1 py-4 bg-blue-500 text-white rounded-[20px] font-bold text-lg hover:bg-blue-600">Enter</button>
+                <button onclick="closeModals()" class="btn-bubbly px-6 py-4 bg-slate-100 text-slate-400 rounded-[20px] font-bold hover:bg-slate-200">Exit</button>
             </div>
         </div>
     </div>
 
-    <div id="confirm-modal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4">
-        <div class="kids-glass p-10 rounded-[50px] max-w-sm w-full text-center space-y-8 border-8 border-red-400 shadow-2xl">
+    <!-- CLEAR CONFIRM MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 modal-overlay items-center justify-center p-4">
+        <div class="kids-glass p-8 rounded-[40px] max-w-sm w-full text-center space-y-6 border-8 border-red-300 shadow-2xl">
             <h2 class="kids-font text-3xl text-red-500">Clear Chat? 🗑️</h2>
-            <p class="font-bold text-lg text-slate-600">Are you sure you want to delete all our messages?</p>
-            <div class="flex gap-4">
-                <button onclick="executeClearChat()" class="btn-bubbly flex-1 py-4 bg-red-500 text-white rounded-[25px] font-bold">Yes, Clear</button>
-                <button onclick="closeModals()" class="btn-bubbly flex-1 py-4 bg-slate-100 text-slate-400 rounded-[25px] font-bold">Cancel</button>
+            <p class="font-bold text-lg text-slate-600">This will delete all memories of the current conversation.</p>
+            <div class="flex gap-3">
+                <button onclick="executeClearChat()" class="btn-bubbly flex-1 py-3 bg-red-500 text-white rounded-[20px] font-bold shadow-lg hover:bg-red-600">Yes, Clear</button>
+                <button onclick="closeModals()" class="btn-bubbly flex-1 py-3 bg-slate-100 text-slate-500 rounded-[20px] font-bold hover:bg-slate-200">No</button>
             </div>
         </div>
     </div>
 
-    <div id="parent-settings" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4">
-        <div class="kids-glass p-10 rounded-[50px] max-w-3xl w-full max-h-[85vh] overflow-y-auto space-y-10 border-8 border-blue-400 shadow-2xl">
-            <div class="flex justify-between items-center border-b-4 border-blue-50 pb-6">
-                <h2 class="kids-font text-4xl text-pink-500">Mama's Kitchen 🛠️</h2>
-                <button onclick="closeModals()" class="text-slate-300 hover:text-slate-500 text-3xl">✕</button>
+    <!-- SETTINGS MODAL -->
+    <div id="parent-settings" class="fixed inset-0 modal-overlay items-center justify-center p-4 z-[110]">
+        <div class="kids-glass p-6 md:p-8 rounded-[40px] max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-6 border-8 border-blue-300 shadow-2xl">
+            <div class="flex justify-between items-center border-b-2 border-blue-100 pb-4">
+                <h2 class="kids-font text-3xl md:text-4xl text-pink-500">Mama's Kitchen 🛠️</h2>
+                <button onclick="closeModals()" class="text-slate-300 hover:text-red-400 text-3xl font-bold transition-colors">✕</button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <h3 class="kids-font text-2xl text-blue-500">Child's Profile</h3>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">First Name</label>
-                        <input type="text" id="kid-name" placeholder="Little Bunny" class="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Current Age</label>
-                        <input type="number" id="kid-age" placeholder="5" class="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Special Interests</label>
-                        <input type="text" id="kid-interests" placeholder="Space, Cats, Painting" class="w-full p-4 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400">
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <h3 class="kids-font text-2xl text-yellow-500">Audio Experience</h3>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Mama's Voice Engine</label>
-                        <select id="voice-selector" class="w-full p-4 bg-yellow-50 border-2 border-yellow-100 rounded-2xl outline-none focus:border-yellow-400 font-semibold text-sm">
-                        </select>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="p-6 bg-pink-50 rounded-[30px] border-2 border-pink-100">
-                            <p class="text-xs text-pink-400 leading-relaxed font-medium italic">All data is saved privately in your browser storage.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Left Col -->
+                <div class="space-y-4">
+                    <h3 class="kids-font text-2xl text-blue-500 border-b-2 border-blue-100 inline-block pb-1">The Explorer</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">First Name</label>
+                            <input type="text" id="kid-name" class="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400 text-slate-700">
                         </div>
-                        <button onclick="clearChatHistory()" class="btn-bubbly w-full py-4 bg-red-100 text-red-500 rounded-2xl font-bold border-2 border-red-200">🗑️ Clear Chat History</button>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Age</label>
+                            <input type="number" id="kid-age" class="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400 text-slate-700">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Gender</label>
+                            <select id="kid-gender" class="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400 text-slate-700">
+                                <option value="Boy">Boy</option>
+                                <option value="Girl">Girl</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Language</label>
+                            <select id="kid-language" class="w-full p-3 bg-blue-50 border-2 border-blue-100 rounded-2xl font-semibold outline-none focus:border-blue-400 text-slate-700">
+                                <option value="English">English</option>
+                                <option value="Hindi">Hindi</option>
+                                <option value="Hinglish">Hinglish</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Col -->
+                <div class="space-y-4">
+                    <h3 class="kids-font text-2xl text-yellow-500 border-b-2 border-yellow-100 inline-block pb-1">Personality</h3>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Likes / Interests</label>
+                            <input type="text" id="kid-likes" placeholder="Cats, Space, Pasta" class="w-full p-3 bg-yellow-50 border-2 border-yellow-100 rounded-2xl font-semibold outline-none focus:border-yellow-400 text-slate-700">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Fears / Dislikes</label>
+                            <input type="text" id="kid-dislikes" placeholder="Darkness, Spiders" class="w-full p-3 bg-yellow-50 border-2 border-yellow-100 rounded-2xl font-semibold outline-none focus:border-yellow-400 text-slate-700">
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-3">
-                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-2">Learning Mission for Today</label>
-                <textarea id="learning-goal" placeholder="Focus on counting today!" class="w-full h-32 p-5 bg-green-50 border-2 border-green-100 rounded-[30px] font-semibold outline-none focus:border-green-400 resize-none shadow-inner"></textarea>
+            <div class="space-y-2">
+                <h3 class="kids-font text-2xl text-green-500 border-b-2 border-green-100 inline-block pb-1">Goal & Voice</h3>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Learning Mission</label>
+                    <textarea id="kid-mission" placeholder="E.g. Teach counting or explain the solar system" class="w-full h-20 p-4 bg-green-50 border-2 border-green-100 rounded-[25px] font-semibold outline-none focus:border-green-400 resize-none shadow-inner text-slate-700"></textarea>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">Voice Tone</label>
+                    <select id="voice-selector" class="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-2xl font-semibold outline-none focus:border-slate-400 text-sm text-slate-700"></select>
+                </div>
             </div>
 
-            <button onclick="saveParentSettings()" class="btn-bubbly w-full py-6 bg-pink-500 text-white rounded-[30px] font-bold text-2xl shadow-xl shadow-pink-200 uppercase tracking-widest">Apply Sync ✨</button>
+            <button onclick="saveParentSettings()" class="btn-bubbly w-full py-5 bg-pink-500 text-white rounded-[25px] font-bold text-xl shadow-xl uppercase tracking-widest hover:bg-pink-600 transition-colors">Apply Settings ✨</button>
         </div>
-    </div>
-
-    <!-- Preloader -->
-    <div id="loader" class="fixed inset-0 z-[100] bg-blue-400 flex flex-col items-center justify-center text-white">
-        <div class="relative w-32 h-32 mb-8">
-             <div class="absolute inset-0 border-[10px] border-white/20 rounded-full"></div>
-             <div class="absolute inset-0 border-[10px] border-white border-t-transparent rounded-full animate-spin"></div>
-             <span class="absolute inset-0 flex items-center justify-center text-5xl">🍭</span>
-        </div>
-        <h2 class="kids-font font-bold text-4xl tracking-wide animate-pulse">Initializing Mumaa...</h2>
     </div>
 
     <script>
         // --- GLOBAL STATE & CONFIG ---
-        const STORAGE_KEYS = {
-            CONFIG: 'mumaa_v2_config',
-            CHATS: 'mumaa_v2_chats',
-            STUDY: 'mumaa_v2_study'
+        const STORAGE_KEYS = { CONFIG: 'mumaa_v3_config', CHATS: 'mumaa_v3_chats', STUDY: 'mumaa_v3_study' };
+        let isListening = false, isSpeaking = false, isThinking = false, serialMode = false, voicesLoaded = false, currentUtterance = null;
+        
+        // Default Config
+        let parentConfig = {
+            kidName: "Explorer", kidAge: "5", kidGender: "Boy", kidLanguage: "English",
+            kidLikes: "Playtime", kidDislikes: "Broccoli", kidMission: "Have fun learning", preferredVoiceName: ""
         };
+
+        // Load Config
+        try {
+            const saved = localStorage.getItem(STORAGE_KEYS.CONFIG);
+            if (saved) parentConfig = { ...parentConfig, ...JSON.parse(saved) };
+        } catch(e) { console.warn("Config load error", e); }
 
         let studyContext = localStorage.getItem(STORAGE_KEYS.STUDY) || "";
-        let isListening = false;
-        let isSpeaking = false;
-        let isThinking = false;
-        let serialMode = false;
-        let voicesLoaded = false;
-        let currentUtterance = null;
-        let speechUnlocked = false; 
-        
-        // Initial config state
-        let parentConfig = {
-            kidName: "",
-            kidAge: "",
-            kidInterests: "",
-            learningGoal: "",
-            preferredVoiceName: ""
-        };
-
-        // Load saved config
-        const savedConfig = localStorage.getItem(STORAGE_KEYS.CONFIG);
-        if (savedConfig) {
-            try {
-                parentConfig = { ...parentConfig, ...JSON.parse(savedConfig) };
-            } catch(e) { console.error("Config load error", e); }
-        }
-
         let gateCorrectAnswer = 0;
 
         // --- THREE.JS ENGINE ---
-        let scene, camera, renderer, head, mouth, leftEye, rightEye, mumaaAvatar;
+        let scene, camera, renderer, head, mouth, leftEye, rightEye, mumaaAvatar, faceGroup;
         let clock = new THREE.Clock();
+        
+        // Scene Objects Arrays
+        let floatingShapes = [];
+        let clouds = [];
 
         function initThree() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xdceeff);
+            const container = document.getElementById('canvas-container');
+            if(!container) return;
 
-            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 1.4, 3.8);
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdceeff); // Soft blue sky
+            
+            // Camera Setup
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.4, 3.8); // Adjusted for better view
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
             scene.add(ambientLight);
+
             const sunLight = new THREE.DirectionalLight(0xffffff, 0.6);
-            sunLight.position.set(5, 12, 10);
+            sunLight.position.set(5, 12, 8);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 1024; 
+            sunLight.shadow.mapSize.height = 1024;
             scene.add(sunLight);
+
+            const rimLight = new THREE.PointLight(0xffeeb1, 0.5);
+            rimLight.position.set(-5, 5, -5);
+            scene.add(rimLight);
 
             createPlayroom();
             createMumaa();
 
             window.addEventListener('resize', onWindowResize);
             animate();
-            
-            // Initialization Logic
-            setTimeout(() => {
-                const loader = document.getElementById('loader');
-                if (loader) {
-                    loader.classList.add('opacity-0');
-                    setTimeout(() => loader.style.display = 'none', 500);
-                }
-                
-                // Populate UI from state
-                document.getElementById('study-material').value = studyContext;
-                document.getElementById('kid-name').value = parentConfig.kidName;
-                document.getElementById('kid-age').value = parentConfig.kidAge;
-                document.getElementById('kid-interests').value = parentConfig.kidInterests;
-                document.getElementById('learning-goal').value = parentConfig.learningGoal;
-                
-                loadChatHistory();
-                populateVoiceList();
-            }, 2000);
+
+            // Init UI values
+            setTimeout(initializeUI, 500);
         }
 
         function createPlayroom() {
-            const floorGeo = new THREE.PlaneGeometry(25, 25);
-            const floorMat = new THREE.MeshStandardMaterial({ color: 0xeedcb1 });
+            // Reset arrays
+            floatingShapes = [];
+            clouds = [];
+            
+            // 1. Magical Floor (Grass/Carpet)
+            const floorGeo = new THREE.CircleGeometry(15, 64);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x8bc34a, 
+                roughness: 1,
+                side: THREE.DoubleSide
+            });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
-            floor.position.y = -0.5;
+            floor.position.y = -0.8;
+            floor.receiveShadow = true;
             scene.add(floor);
 
-            const wallGeo = new THREE.PlaneGeometry(35, 20);
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0xfff9e6 });
-            const wall = new THREE.Mesh(wallGeo, wallMat);
-            wall.position.z = -3.5;
-            scene.add(wall);
-
-            const colors = [0xFF6B6B, 0x4D96FF, 0x6BCBFF, 0xFFD93D, 0x6BCB77, 0xFFA07A];
-            for(let i=0; i<15; i++) {
-                const blockGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
-                const blockMat = new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 0.2 });
-                const block = new THREE.Mesh(blockGeo, blockMat);
-                block.position.set((Math.random() - 0.5) * 10, -0.27, (Math.random() - 0.5) * 5 - 1.5);
-                block.rotation.y = Math.random() * Math.PI;
-                scene.add(block);
+            // 2. Decor: Trees/Bushes
+            for(let i=0; i<8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const radius = 6 + Math.random() * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius - 2; // Offset slightly back
+                createTree(x, z);
             }
+
+            // 3. Decor: Clouds
+            createCloud(-5, 4, -5, 1.2);
+            createCloud(5, 5, -8, 1.5);
+            createCloud(0, 6, -6, 1.0);
+            createCloud(-6, 3, -2, 0.8);
+
+            // 4. Floating Magical Shapes
+            const colors = [0xFF6B6B, 0x4D96FF, 0xFFD93D, 0xFF9F43, 0xA55EEA];
+            const geoms = [
+                new THREE.IcosahedronGeometry(0.3),
+                new THREE.OctahedronGeometry(0.25),
+                new THREE.TetrahedronGeometry(0.3),
+                new THREE.TorusGeometry(0.2, 0.08, 8, 16)
+            ];
+
+            for(let i=0; i<15; i++) {
+                const geom = geoms[Math.floor(Math.random()*geoms.length)];
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: colors[Math.floor(Math.random()*colors.length)], 
+                    roughness: 0.2,
+                    metalness: 0.1
+                });
+                const shape = new THREE.Mesh(geom, mat);
+                
+                // Spread them out but keep them somewhat close to center view
+                const x = (Math.random() - 0.5) * 10;
+                const y = Math.random() * 3 + 0.5;
+                const z = (Math.random() - 0.5) * 5 - 2;
+                
+                shape.position.set(x, y, z);
+                shape.castShadow = true;
+                
+                // Random rotation speed & float params
+                shape.userData = {
+                    rotX: (Math.random() - 0.5) * 0.02,
+                    rotY: (Math.random() - 0.5) * 0.02,
+                    floatSpeed: Math.random() * 0.01 + 0.005,
+                    floatOffset: Math.random() * Math.PI * 2,
+                    initialY: y
+                };
+                
+                scene.add(shape);
+                floatingShapes.push(shape);
+            }
+        }
+
+        // Helper: Create a simple low-poly tree
+        function createTree(x, z) {
+            const group = new THREE.Group();
+            
+            // Trunk
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.15, 0.2, 0.8, 8),
+                new THREE.MeshStandardMaterial({ color: 0x8d6e63 })
+            );
+            trunk.position.y = 0.4;
+            trunk.castShadow = true;
+            group.add(trunk);
+            
+            // Top
+            const top = new THREE.Mesh(
+                new THREE.ConeGeometry(0.8, 1.5, 8),
+                new THREE.MeshStandardMaterial({ color: 0x66bb6a })
+            );
+            top.position.y = 1.15;
+            top.castShadow = true;
+            group.add(top);
+
+            group.position.set(x, -0.8, z);
+            scene.add(group);
+        }
+
+        // Helper: Create a fluffy cloud
+        function createCloud(x, y, z, scale) {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 0.8 });
+            const geo = new THREE.SphereGeometry(1, 16, 16); // Base size
+
+            const blobs = [
+                {x:0, y:0, z:0, s:1},
+                {x:0.8, y:-0.1, z:0.2, s:0.7},
+                {x:-0.8, y:-0.1, z:-0.2, s:0.7},
+                {x:0.4, y:0.5, z:0, s:0.6}
+            ];
+
+            blobs.forEach(b => {
+                const m = new THREE.Mesh(geo, mat);
+                m.position.set(b.x, b.y, b.z);
+                m.scale.set(b.s, b.s, b.s);
+                group.add(m);
+            });
+
+            group.position.set(x, y, z);
+            group.scale.set(scale, scale, scale);
+            // Store initial X for drifting animation
+            group.userData = { speed: scale * 0.005, initialX: x };
+            
+            scene.add(group);
+            clouds.push(group);
         }
 
         function createMumaa() {
             mumaaAvatar = new THREE.Group();
             
-            const headGroup = new THREE.Group();
-            const headGeo = new THREE.SphereGeometry(0.45, 64, 64);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.5 });
-            head = new THREE.Mesh(headGeo, headMat);
-            headGroup.add(head);
+            // Materials
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.5 }); // Lighter skin
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0x2d1b0d, roughness: 0.9 });
+            const dressMat = new THREE.MeshStandardMaterial({ color: 0xff8aaf, roughness: 0.6 });
 
-            const noseGeo = new THREE.SphereGeometry(0.04, 16, 16);
-            const nose = new THREE.Mesh(noseGeo, headMat);
-            nose.position.set(0, -0.05, 0.43);
-            nose.scale.set(1, 1.2, 0.8);
-            headGroup.add(nose);
+            // 1. Head
+            head = new THREE.Mesh(new THREE.SphereGeometry(0.44, 64, 64), skinMat);
+            head.position.y = 1.35;
+            head.castShadow = true;
+            mumaaAvatar.add(head);
 
-            const earGeo = new THREE.SphereGeometry(0.08, 16, 16);
-            const lEar = new THREE.Mesh(earGeo, headMat);
-            lEar.position.set(-0.44, 0, 0);
-            lEar.scale.set(0.5, 1, 0.8);
-            headGroup.add(lEar);
-            const rEar = new THREE.Mesh(earGeo, headMat);
-            rEar.position.set(0.44, 0, 0);
-            rEar.scale.set(0.5, 1, 0.8);
-            headGroup.add(rEar);
+            // 2. Hair
+            const mainHair = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 32, 0, Math.PI * 2, 0, Math.PI / 1.7), hairMat);
+            mainHair.position.y = 1.38;
+            mumaaAvatar.add(mainHair);
+            const bun = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), hairMat);
+            bun.position.set(0, 1.75, -0.15);
+            mumaaAvatar.add(bun);
 
-            headGroup.position.y = 1.35;
-            mumaaAvatar.add(headGroup);
+            // 3. Face Group (Attached to head movement)
+            faceGroup = new THREE.Group();
+            faceGroup.position.y = 1.35;
+            faceGroup.position.z = 0.42; // Move to surface of face
 
-            const hairGroup = new THREE.Group();
-            const hairMat = new THREE.MeshStandardMaterial({ color: 0x2b1e16, roughness: 0.8 });
-            const mainHair = new THREE.Mesh(new THREE.SphereGeometry(0.48, 64, 64, 0, Math.PI * 2, 0, Math.PI / 1.6), hairMat);
-            hairGroup.add(mainHair);
-            
-            const sideHairL = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), hairMat);
-            sideHairL.position.set(-0.35, -0.1, -0.1);
-            sideHairL.scale.set(1, 1.5, 1);
-            hairGroup.add(sideHairL);
-            const sideHairR = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), hairMat);
-            sideHairR.position.set(0.35, -0.1, -0.1);
-            sideHairR.scale.set(1, 1.5, 1);
-            hairGroup.add(sideHairR);
-
-            hairGroup.position.y = 1.39;
-            mumaaAvatar.add(hairGroup);
-
-            const frameMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 });
-            const frameGeo = new THREE.TorusGeometry(0.09, 0.015, 16, 40);
-            const lFrame = new THREE.Mesh(frameGeo, frameMat);
-            lFrame.position.set(-0.16, 1.38, 0.42);
-            mumaaAvatar.add(lFrame);
-            const rFrame = new THREE.Mesh(frameGeo, frameMat);
-            rFrame.position.set(0.16, 1.38, 0.42);
-            mumaaAvatar.add(rFrame);
-            const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.02), frameMat);
-            bridge.position.set(0, 1.38, 0.42);
-            mumaaAvatar.add(bridge);
-
-            const scleraMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const irisMat = new THREE.MeshStandardMaterial({ color: 0x4a3728 });
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-
+            // Eyes
             function createEye() {
                 const group = new THREE.Group();
-                const sclera = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 32), scleraMat);
-                group.add(sclera);
+                // Sclera
+                const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.07, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                eyeWhite.scale.z = 0.6; // Flatten slightly
+                group.add(eyeWhite);
                 
-                const iris = new THREE.Mesh(new THREE.CircleGeometry(0.03, 32), irisMat);
-                iris.position.set(0, 0, 0.049);
+                // Iris
+                const iris = new THREE.Mesh(new THREE.CircleGeometry(0.035, 32), new THREE.MeshStandardMaterial({ color: 0x5D4037 }));
+                iris.position.z = 0.065; 
                 group.add(iris);
                 
-                const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.015, 32), pupilMat);
-                pupil.position.set(0, 0, 0.05);
+                // Pupil
+                const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.015, 32), new THREE.MeshStandardMaterial({ color: 0x000000 }));
+                pupil.position.z = 0.066; 
                 group.add(pupil);
+                
+                // Highlight
+                const shine = new THREE.Mesh(new THREE.CircleGeometry(0.008, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+                shine.position.set(0.015, 0.015, 0.067);
+                group.add(shine);
+                
                 return group;
             }
 
             leftEye = createEye();
-            leftEye.position.set(-0.16, 1.38, 0.38);
-            mumaaAvatar.add(leftEye);
+            leftEye.position.set(-0.15, 0.05, 0.0);
+            leftEye.rotation.y = -0.15;
+            faceGroup.add(leftEye);
 
             rightEye = createEye();
-            rightEye.position.set(0.16, 1.38, 0.38);
-            mumaaAvatar.add(rightEye);
+            rightEye.position.set(0.15, 0.05, 0.0);
+            rightEye.rotation.y = 0.15;
+            faceGroup.add(rightEye);
 
-            const mouthGeo = new THREE.TorusGeometry(0.06, 0.02, 16, 32, Math.PI);
-            const mouthMat = new THREE.MeshStandardMaterial({ color: 0xcc4444 });
-            mouth = new THREE.Mesh(mouthGeo, mouthMat);
-            mouth.position.set(0, 1.18, 0.42);
+            // Glasses
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.2, roughness: 0.2 });
+            const lFrame = new THREE.Mesh(new THREE.TorusGeometry(0.10, 0.012, 16, 40), frameMat);
+            lFrame.position.set(-0.15, 0.05, 0.05);
+            lFrame.rotation.y = -0.15;
+            faceGroup.add(lFrame);
+
+            const rFrame = lFrame.clone();
+            rFrame.position.set(0.15, 0.05, 0.05);
+            rFrame.rotation.y = 0.15;
+            faceGroup.add(rFrame);
+
+            const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), frameMat);
+            bridge.rotation.z = Math.PI / 2;
+            bridge.position.set(0, 0.05, 0.08); // Pushed out slightly
+            faceGroup.add(bridge);
+
+            // Nose
+            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), skinMat);
+            nose.position.set(0, -0.05, 0.04);
+            nose.scale.set(1, 1.2, 0.8);
+            faceGroup.add(nose);
+
+            // Mouth
+            mouth = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.015, 16, 32, Math.PI), new THREE.MeshStandardMaterial({ color: 0xd65a5a }));
+            mouth.position.set(0, -0.22, 0.02);
             mouth.rotation.x = Math.PI;
-            mumaaAvatar.add(mouth);
+            faceGroup.add(mouth);
 
-            const bodyGroup = new THREE.Group();
-            const neckGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.2, 32);
-            const neck = new THREE.Mesh(neckGeo, headMat);
-            neck.position.y = 0.95;
-            bodyGroup.add(neck);
+            mumaaAvatar.add(faceGroup);
 
-            const torsoGeo = new THREE.CylinderGeometry(0.35, 0.6, 1.3, 32);
-            const torsoMat = new THREE.MeshStandardMaterial({ color: 0xFF8AAE, roughness: 0.9 });
-            const torso = new THREE.Mesh(torsoGeo, torsoMat);
-            torso.position.y = 0.3;
-            bodyGroup.add(torso);
+            // Body
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.6, 1.3, 32), dressMat);
+            torso.position.y = 0.4;
+            torso.castShadow = true;
+            mumaaAvatar.add(torso);
 
-            const collarGeo = new THREE.TorusGeometry(0.15, 0.03, 16, 32);
-            const collar = new THREE.Mesh(collarGeo, torsoMat);
-            collar.rotation.x = Math.PI/2;
-            collar.position.y = 0.9;
-            bodyGroup.add(collar);
-
-            mumaaAvatar.add(bodyGroup);
             scene.add(mumaaAvatar);
         }
 
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
+            
+            // --- Scene Animation ---
+            
+            // 1. Floating Shapes
+            floatingShapes.forEach(shape => {
+                shape.rotation.x += shape.userData.rotX;
+                shape.rotation.y += shape.userData.rotY;
+                // Bob up and down
+                shape.position.y = shape.userData.initialY + Math.sin(t * 2 + shape.userData.floatOffset) * 0.2;
+            });
+
+            // 2. Drifting Clouds
+            clouds.forEach(cloud => {
+                cloud.position.x += cloud.userData.speed;
+                // Loop clouds
+                if(cloud.position.x > 15) cloud.position.x = -15;
+            });
+
+            // --- Mumaa Animation ---
             if (mumaaAvatar) {
-                mumaaAvatar.position.y = Math.sin(t * 1.3) * 0.03;
-                head.rotation.y = Math.sin(t * 0.4) * 0.12;
-                head.rotation.z = Math.sin(t * 0.3) * 0.05;
+                // Gentle breathing
+                mumaaAvatar.position.y = Math.sin(t * 1.5) * 0.01;
                 
+                // Head idle movement
+                const rotY = Math.sin(t * 0.5) * 0.08;
+                const rotX = Math.sin(t * 0.3) * 0.03;
+                
+                head.rotation.y = rotY;
+                head.rotation.x = rotX;
+                
+                // Parenting rotation to face group
+                faceGroup.rotation.y = rotY;
+                faceGroup.rotation.x = rotX;
+                
+                // Thinking animation
                 if (isThinking) {
-                    head.rotation.x = Math.sin(t * 5) * 0.1;
+                    head.rotation.z = Math.sin(t * 10) * 0.05;
+                    faceGroup.rotation.z = Math.sin(t * 10) * 0.05;
+                } else {
+                    head.rotation.z = 0;
+                    faceGroup.rotation.z = 0;
                 }
 
-                const blink = (Math.sin(t * 0.6) > 0.98);
-                leftEye.scale.y = rightEye.scale.y = blink ? 0.1 : 1;
+                // Blinking
+                const blink = Math.sin(t * 0.5); // Slow cycle
+                if (blink > 0.98) {
+                    leftEye.scale.y = 0.1;
+                    rightEye.scale.y = 0.1;
+                } else {
+                    leftEye.scale.y = 1;
+                    rightEye.scale.y = 1;
+                }
             }
-            
+
+            // Lip sync simulation
             if (isSpeaking && mouth) {
-                const scaleM = 1 + Math.abs(Math.sin(t * 16)) * 2.8;
-                mouth.scale.set(1.5, scaleM, 1);
+                const volume = (Math.sin(t * 20) + 1) / 2; // 0 to 1
+                mouth.scale.y = 1 + (volume * 1.5);
+                mouth.scale.x = 1 + (volume * 0.2);
             } else if (mouth) {
-                mouth.scale.set(1.3, 0.15, 1);
+                mouth.scale.set(1, 1, 1);
             }
+
             renderer.render(scene, camera);
         }
 
@@ -541,298 +733,173 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // --- PARENT SECURITY ---
-        function openParentGate() {
-            const n1 = Math.floor(Math.random() * 10) + 12;
-            const n2 = Math.floor(Math.random() * 8) + 2;
-            gateCorrectAnswer = n1 + n2;
-            document.getElementById('gate-question').innerText = `Parents: What is ${n1} + ${n2}?`;
-            const gateInput = document.getElementById('gate-answer');
-            if (gateInput) gateInput.value = "";
-            document.getElementById('parent-gate').classList.remove('hidden');
+        // --- UI INITIALIZATION ---
+        function initializeUI() {
+            document.getElementById('study-material').value = studyContext;
+            document.getElementById('kid-name').value = parentConfig.kidName;
+            document.getElementById('kid-age').value = parentConfig.kidAge;
+            document.getElementById('kid-gender').value = parentConfig.kidGender || "Boy";
+            document.getElementById('kid-language').value = parentConfig.kidLanguage || "English";
+            document.getElementById('kid-likes').value = parentConfig.kidLikes || "";
+            document.getElementById('kid-dislikes').value = parentConfig.kidDislikes || "";
+            document.getElementById('kid-mission').value = parentConfig.kidMission || "";
+            
+            loadChatHistory();
+            populateVoiceList();
+            
+            // Check existing history to prevent duplicate greetings
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
+            
+            if (history.length === 0) {
+                // Start with instructions visible only if no history
+                setTimeout(() => {
+                    addChatMessage(`Hi ${parentConfig.kidName}! I am Mumaa. What are we playing today?`, 'ai', false);
+                }, 1000);
+            }
         }
 
-        function checkParentGate() {
-            const gateInput = document.getElementById('gate-answer');
-            if (!gateInput) return;
-            const ans = parseInt(gateInput.value);
-            if (ans === gateCorrectAnswer) {
-                document.getElementById('parent-gate').classList.add('hidden');
-                document.getElementById('parent-settings').classList.remove('hidden');
-                unlockSpeech();
-            } else { openParentGate(); }
+        // --- PANEL LOGIC ---
+        function togglePanel(id) {
+            const panel = document.getElementById(id);
+            const isLeft = id === 'left-panel';
+            const btn = document.getElementById(isLeft ? 'reopen-left' : 'reopen-right');
+            const hiddenClass = isLeft ? 'panel-hidden-left' : 'panel-hidden-right';
+            const visibleClass = 'panel-visible';
+
+            if (panel.classList.contains(visibleClass)) {
+                // Hide
+                panel.classList.remove(visibleClass);
+                panel.classList.add(hiddenClass);
+                btn.classList.add('reopen-visible');
+            } else {
+                // Show
+                panel.classList.remove(hiddenClass);
+                panel.classList.add(visibleClass);
+                btn.classList.remove('reopen-visible');
+            }
         }
 
         function closeModals() {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         }
-
-        function populateVoiceList() {
-            const selector = document.getElementById('voice-selector');
-            if (!selector) return;
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                selector.innerHTML = voices
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(v => `<option value="${v.name}" ${v.name === parentConfig.preferredVoiceName ? 'selected' : ''}>${v.name} (${v.lang})</option>`)
-                    .join('');
-                voicesLoaded = true;
-            }
-        }
-
-        // Essential for MacBook/Safari: Aggressive "Handshake"
-        function unlockSpeech() {
-            try {
-                // macOS likes a resume call before cancel
-                window.speechSynthesis.resume();
-                window.speechSynthesis.cancel();
-                
-                // Speak a near-silent period to prime the hardware
-                const silent = new SpeechSynthesisUtterance(".");
-                silent.volume = 0.001; 
-                window.speechSynthesis.speak(silent);
-                
-                speechUnlocked = true;
-                console.log("Audio Handshake Successful");
-            } catch(e) { console.error("Audio handshake failed", e); }
-        }
-
-        function saveParentSettings() {
-            unlockSpeech();
-            parentConfig = {
-                kidName: document.getElementById('kid-name').value.trim(),
-                kidAge: document.getElementById('kid-age').value.trim(),
-                kidInterests: document.getElementById('kid-interests').value.trim(),
-                learningGoal: document.getElementById('learning-goal').value.trim(),
-                preferredVoiceName: document.getElementById('voice-selector').value
-            };
-            localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(parentConfig));
+        function openModal(id) {
             closeModals();
-            addChatMessage("Sync complete! Mama is now ready for our adventure.", "ai");
-            speak(`Settings sync successful. Hello there! Mama is ready to help now.`);
+            const el = document.getElementById(id);
+            if(el) el.style.display = 'flex';
         }
 
-        // --- STORAGE HELPERS ---
-        function loadChatHistory() {
-            const container = document.getElementById('chat-container');
-            container.innerHTML = "";
-            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
-            history.forEach(chat => {
-                renderChatMessage(chat.text, chat.role, false);
-            });
-            container.scrollTop = container.scrollHeight;
-            
-            if (history.length === 0) {
-                const welcome = `Hi there, sweetheart! I'm Mumaa. I'm so glad you're here. What would you like to learn or talk about today?`;
-                addChatMessage(welcome, 'ai');
-            }
-        }
-
-        function clearChatHistory() {
-            document.getElementById('confirm-modal').classList.remove('hidden');
-        }
-
-        function executeClearChat() {
-            localStorage.setItem(STORAGE_KEYS.CHATS, "[]");
-            loadChatHistory();
-            closeModals();
-        }
-
-        // --- VOICE & CONVERSATION ---
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US';
-
-        function toggleVoiceSession() {
-            unlockSpeech();
-            if (isListening) {
-                recognition.stop();
-                serialMode = false;
-            } else {
-                serialMode = true;
-                startVoiceInput();
-            }
-        }
-
-        function startVoiceInput() {
-            if (isSpeaking || isListening || isThinking) return;
-            try { isSpeaking = false; recognition.start(); } catch(e) {}
-        }
-
-        recognition.onstart = () => {
-            isListening = true;
-            document.getElementById('mic-btn').classList.add('mic-pulse');
-            document.getElementById('mic-halo').classList.remove('opacity-0');
-            const statusTag = document.getElementById('status-tag');
-            statusTag.style.opacity = "1";
-            statusTag.innerText = "Listening...";
-        };
-
-        recognition.onresult = (e) => {
-            const text = e.results[0][0].transcript;
-            addChatMessage(text, 'user');
-            processAI(text);
-        };
-
-        recognition.onend = () => {
-            isListening = false;
-            document.getElementById('mic-btn').classList.remove('mic-pulse');
-            document.getElementById('mic-halo').classList.add('opacity-0');
-            if (!isThinking && !isSpeaking) document.getElementById('status-tag').style.opacity = "0";
-        };
-
+        // --- AI LOGIC (RAG) ---
         async function processAI(userText) {
             isThinking = true;
-            const statusTag = document.getElementById('status-tag');
-            statusTag.innerText = "Thinking...";
-            statusTag.style.opacity = "1";
-            statusTag.classList.add('thinking-bounce');
-
-            const prompt = `You are Mumaa, a loving teacher. Kid: ${parentConfig.kidName}, Age: ${parentConfig.kidAge}. Notes: ${studyContext || "None"}. Rules: NO EMOJIS. Motherly tone. 2-3 sentences max. Question: ${userText}`;
+            updateStatus("Thinking...", true);
             
-            try {
-                const response = await puter.ai.chat(prompt);
-                const aiMsg = response.toString();
-                addChatMessage(aiMsg, 'ai');
-                
-                isThinking = false;
-                statusTag.classList.remove('thinking-bounce');
-                statusTag.style.opacity = "0";
+            const age = parseInt(parentConfig.kidAge) || 5;
+            let pedagogy = "Gentle, simple words.";
+            if(age >= 6) pedagogy = "Encouraging, curious mentor.";
+            
+            // Build Context
+            studyContext = localStorage.getItem(STORAGE_KEYS.STUDY) || "";
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]").slice(-6);
+            
+            // Prompt Engineering
+            const prompt = `
+            ROLE: You are Mumaa, a loving AI mother for ${parentConfig.kidName} (${parentConfig.kidGender}, Age ${age}).
+            TONE: Warm, patient, safe. Language: ${parentConfig.kidLanguage}.
+            INTERESTS: ${parentConfig.kidLikes}. AVOID: ${parentConfig.kidDislikes}.
+            GOAL: ${parentConfig.kidMission}.
+            
+            IMPORTANT MEMORY (RAG):
+            "${studyContext}"
+            
+            INSTRUCTIONS:
+            1. If memory answers the user, USE IT.
+            2. Keep answer SHORT (max 2 sentences).
+            3. Always end with a simple question to keep conversation going.
+            4. No Emojis in text (TTS can't read them well).
+            
+            CHAT HISTORY:
+            ${JSON.stringify(history)}
+            
+            USER SAID: "${userText}"
+            `;
 
-                await speak(aiMsg);
-            } catch (err) {
+            try {
+                // Call Puter AI
+                const response = await puter.ai.chat(prompt);
+                
+                // Handle response object or string
+                let text = "";
+                if (typeof response === 'object' && response.message) text = response.message.content;
+                else if (typeof response === 'string') text = response;
+                else text = response.toString(); // Fallback
+
+                // Clean text
+                text = text.replace(/[*#]/g, '').trim();
+
                 isThinking = false;
-                statusTag.classList.remove('thinking-bounce');
-                statusTag.style.opacity = "0";
-                speak("Mama had a tiny hiccup. Let's try again, darling.");
+                updateStatus("", false);
+                
+                addChatMessage(text, 'ai');
+                await speak(text);
+
+            } catch (err) {
+                console.error("AI Error:", err);
+                isThinking = false;
+                updateStatus("Error", false);
+                const fallback = "Oh my, I got a little distracted! Can you say that again, sweetie?";
+                addChatMessage(fallback, 'ai');
+                await speak(fallback);
             }
         }
 
-        async function speak(text) {
-            if (!text) return;
-            return new Promise((resolve) => {
-                // Force engine awake for MacBook
-                window.speechSynthesis.resume();
-                window.speechSynthesis.cancel();
-
-                const safetyTimeout = setTimeout(() => {
-                    isSpeaking = false;
-                    document.getElementById('status-tag').style.opacity = "0";
-                    resolve();
-                }, 10000);
-
-                setTimeout(() => {
-                    // Clean text (remove markdown-like punctuation that confuses some TTS engines)
-                    const cleanText = text.replace(/[*_#]/g, '');
-                    const utterance = new SpeechSynthesisUtterance(cleanText);
-                    currentUtterance = utterance;
-
-                    const voices = window.speechSynthesis.getVoices();
-                    let targetVoice = voices.find(v => v.name === parentConfig.preferredVoiceName);
-
-                    if (!targetVoice) {
-                        const searchList = ['Microsoft Aria Online', 'Microsoft Jenny Online', 'Google US English Female', 'Samantha', 'Victoria', 'Female'];
-                        for (let n of searchList) {
-                            targetVoice = voices.find(v => v.name.includes(n));
-                            if (targetVoice) break;
-                        }
-                    }
-
-                    if (!targetVoice) targetVoice = voices[0];
-
-                    utterance.voice = targetVoice;
-                    utterance.pitch = 1.25; 
-                    utterance.rate = 0.94;  
-
-                    utterance.onstart = () => {
-                        isSpeaking = true;
-                        isThinking = false;
-                        const statusTag = document.getElementById('status-tag');
-                        statusTag.innerText = "Speaking...";
-                        statusTag.style.opacity = "1";
-                        statusTag.classList.remove('thinking-bounce');
-                    };
-
-                    utterance.onend = () => {
-                        clearTimeout(safetyTimeout);
-                        isSpeaking = false;
-                        document.getElementById('status-tag').style.opacity = "0";
-                        currentUtterance = null;
-                        if (serialMode) setTimeout(startVoiceInput, 1000);
-                        resolve();
-                    };
-
-                    utterance.onerror = (e) => {
-                        clearTimeout(safetyTimeout);
-                        console.error("Speech failure:", e);
-                        isSpeaking = false;
-                        document.getElementById('status-tag').style.opacity = "0";
-                        resolve();
-                    };
-
-                    window.speechSynthesis.speak(utterance);
-                    
-                    // Essential for Chrome/Safari on macOS: Continuous wake-up
-                    const resumeInt = setInterval(() => {
-                        if (isSpeaking) window.speechSynthesis.resume();
-                        else clearInterval(resumeInt);
-                    }, 1500);
-
-                }, 100);
-            });
-        }
-
-        function addChatMessage(text, role) {
-            renderChatMessage(text, role, true);
-            
-            // Persist to storage
-            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
-            history.push({ text, role });
-            if (history.length > 100) history.shift(); 
-            localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(history));
-        }
-
-        function renderChatMessage(text, role, animate) {
+        // --- CHAT SYSTEM ---
+        function renderChatMessage(text, role, animate = true) {
             const container = document.getElementById('chat-container');
             if (!container) return;
+
             const div = document.createElement('div');
-            div.className = `p-4 text-sm font-bold shadow-md ${animate ? 'animate-in fade-in slide-in-from-bottom-3 duration-500' : ''} ${role === 'user' ? 'chat-bubble-user ml-10' : 'chat-bubble-ai mr-10'}`;
+            div.className = `p-3 px-4 text-sm font-bold ${role === 'user' ? 'chat-bubble-user self-end' : 'chat-bubble-ai self-start'}`;
             div.innerText = text;
+            
+            if(animate) {
+                div.style.opacity = '0';
+                div.style.transform = 'translateY(10px)';
+                div.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => { div.style.opacity = '1'; div.style.transform = 'translateY(0)'; }, 50);
+            }
+
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        function updateContext() {
-            unlockSpeech();
-            studyContext = document.getElementById('study-material').value.trim();
-            localStorage.setItem(STORAGE_KEYS.STUDY, studyContext);
-            
-            const btn = document.getElementById('update-btn');
-            if (btn) {
-                btn.classList.replace('bg-blue-500', 'bg-green-500');
-                const btnText = document.getElementById('update-btn-text');
-                if (btnText) btnText.innerText = "Synced! ✅";
-                
-                setTimeout(() => {
-                    btn.classList.replace('bg-green-500', 'bg-blue-500');
-                    if (btnText) btnText.innerText = "Sync with Mumaa";
-                }, 2500);
-            }
+        function addChatMessage(text, role, animate = true) {
+            renderChatMessage(text, role, animate);
 
-            addChatMessage("I've remembered your special notes!", "ai");
-            speak("I have read your notes, sweetie. I am ready!");
+            // Save
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
+            history.push({ text, role });
+            if (history.length > 30) history.shift();
+            localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(history));
         }
 
-        function togglePanel(id) {
-            const panel = document.getElementById(id);
-            if (!panel) return;
-            const isLeft = id === 'left-panel';
-            panel.style.transform = panel.style.transform ? '' : `translateX(${isLeft ? '-115%' : '115%'})`;
+        function loadChatHistory() {
+            const container = document.getElementById('chat-container');
+            container.innerHTML = "";
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
+            // Only load last 10 to keep it clean
+            history.slice(-10).forEach(chat => renderChatMessage(chat.text, chat.role, false));
+        }
+
+        function executeClearChat() {
+            localStorage.setItem(STORAGE_KEYS.CHATS, "[]");
+            document.getElementById('chat-container').innerHTML = "";
+            closeModals();
+            addChatMessage(`Memory cleared! Hi ${parentConfig.kidName}!`, 'ai');
         }
 
         function sendTextMessage() {
             unlockSpeech();
             const input = document.getElementById('text-input');
-            if (!input) return;
             const text = input.value.trim();
             if (text) {
                 addChatMessage(text, 'user');
@@ -841,22 +908,200 @@
             }
         }
 
-        const textInput = document.getElementById('text-input');
-        if (textInput) {
-            textInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendTextMessage();
+        // --- TTS & STT ---
+        function speak(text) {
+            return new Promise((resolve) => {
+                if(!text) return resolve();
+                
+                // Stop any current speech
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                currentUtterance = utterance;
+
+                // Voice Selection
+                const voices = window.speechSynthesis.getVoices();
+                const preferred = voices.find(v => v.name === parentConfig.preferredVoiceName);
+                const female = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English'));
+                
+                utterance.voice = preferred || female || voices[0];
+                utterance.pitch = 1.1; // Slightly higher/friendly
+                utterance.rate = 0.95; // Slightly slower
+
+                utterance.onstart = () => {
+                    isSpeaking = true;
+                    updateStatus("Speaking...", true);
+                };
+
+                utterance.onend = () => {
+                    isSpeaking = false;
+                    updateStatus("", false);
+                    currentUtterance = null;
+                    if(serialMode) {
+                        setTimeout(() => {
+                            if(!isThinking && !isSpeaking) startVoiceInput();
+                        }, 500);
+                    }
+                    resolve();
+                };
+
+                utterance.onerror = (e) => {
+                    console.log("TTS Error", e);
+                    isSpeaking = false;
+                    resolve();
+                };
+
+                window.speechSynthesis.speak(utterance);
             });
         }
 
-        // Global MacBook Unlock listener
-        document.body.addEventListener('click', unlockSpeech, { once: true });
-
-        if (typeof window.speechSynthesis !== 'undefined') {
-            window.speechSynthesis.onvoiceschanged = populateVoiceList;
-            populateVoiceList();
-        }
+        // --- VOICE RECOGNITION ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
         
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('mic-btn').classList.add('mic-pulse');
+                updateStatus("Listening...", true);
+            };
+
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                if(text) {
+                    addChatMessage(text, 'user');
+                    processAI(text);
+                }
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('mic-btn').classList.remove('mic-pulse');
+                if(!isThinking && !isSpeaking) updateStatus("", false);
+            };
+
+            recognition.onerror = (e) => {
+                console.warn("Mic Error:", e.error);
+                isListening = false;
+                serialMode = false; // Stop loop on error
+                document.getElementById('mic-btn').classList.remove('mic-pulse');
+                if(e.error === 'not-allowed') alert("Please allow microphone access to talk to Mumaa.");
+                updateStatus("Tap Mic Again", false);
+            };
+        } else {
+            console.warn("Speech Recognition not supported in this browser");
+        }
+
+        function toggleVoiceSession() {
+            unlockSpeech();
+            if(!recognition) { alert("Voice control not supported in this browser. Try Chrome."); return; }
+            
+            if (isListening) {
+                recognition.stop();
+                serialMode = false;
+            } else {
+                serialMode = true; // Enable conversational loop
+                startVoiceInput();
+            }
+        }
+
+        function startVoiceInput() {
+            if (isSpeaking || isThinking || isListening) return;
+            try { recognition.start(); } catch(e) { /* ignore if already started */ }
+        }
+
+        // --- UTILS ---
+        function updateStatus(text, show) {
+            const tag = document.getElementById('status-tag');
+            tag.innerText = text;
+            tag.style.opacity = show ? "1" : "0";
+            if(text === "Thinking...") tag.classList.add('thinking-bounce');
+            else tag.classList.remove('thinking-bounce');
+        }
+
+        function unlockSpeech() {
+            // Mobile browsers require user interaction to play audio
+            if(window.speechSynthesis.paused) window.speechSynthesis.resume();
+        }
+
+        function populateVoiceList() {
+            const selector = document.getElementById('voice-selector');
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                selector.innerHTML = voices
+                    .filter(v => v.lang.startsWith('en') || v.lang.startsWith('hi'))
+                    .map(v => `<option value="${v.name}" ${v.name === parentConfig.preferredVoiceName ? 'selected' : ''}>${v.name} (${v.lang})</option>`).join('');
+            }
+        }
+
+        function updateContext() {
+            unlockSpeech();
+            const val = document.getElementById('study-material').value.trim();
+            localStorage.setItem(STORAGE_KEYS.STUDY, val);
+            studyContext = val;
+            
+            const btn = document.getElementById('update-btn');
+            const originalText = document.getElementById('update-btn-text').innerText;
+            
+            btn.style.backgroundColor = '#4ade80'; // green
+            document.getElementById('update-btn-text').innerText = "Saved! ✅";
+            
+            setTimeout(() => {
+                btn.style.backgroundColor = ''; // reset
+                document.getElementById('update-btn-text').innerText = originalText;
+            }, 2000);
+        }
+
+        // --- PARENT GATE LOGIC ---
+        function openParentGate() {
+            const n1 = Math.floor(Math.random() * 5) + 3;
+            const n2 = Math.floor(Math.random() * 5) + 2;
+            gateCorrectAnswer = n1 * n2;
+            document.getElementById('gate-question').innerText = `Parents Only: ${n1} x ${n2} = ?`;
+            document.getElementById('gate-answer').value = "";
+            openModal('parent-gate');
+        }
+
+        function checkParentGate() {
+            const ans = parseInt(document.getElementById('gate-answer').value);
+            if (ans === gateCorrectAnswer) {
+                openModal('parent-settings');
+            } else {
+                document.getElementById('gate-question').innerText = "Try again!";
+                setTimeout(openParentGate, 1000);
+            }
+        }
+
+        function saveParentSettings() {
+            unlockSpeech();
+            parentConfig = {
+                kidName: document.getElementById('kid-name').value.trim() || "Explorer",
+                kidAge: document.getElementById('kid-age').value.trim() || "5",
+                kidGender: document.getElementById('kid-gender').value,
+                kidLanguage: document.getElementById('kid-language').value,
+                kidLikes: document.getElementById('kid-likes').value.trim(),
+                kidDislikes: document.getElementById('kid-dislikes').value.trim(),
+                kidMission: document.getElementById('kid-mission').value.trim(),
+                preferredVoiceName: document.getElementById('voice-selector').value
+            };
+            localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(parentConfig));
+            closeModals();
+            speak(`Settings saved! I am ready to play with ${parentConfig.kidName}.`);
+        }
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('text-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendTextMessage(); });
+        document.body.addEventListener('click', () => { unlockSpeech(); }, { once: true });
+        if (typeof window.speechSynthesis !== 'undefined') window.speechSynthesis.onvoiceschanged = populateVoiceList;
+        
+        // Start
         window.onload = initThree;
+        
     </script>
 </body>
 </html>
