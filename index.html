@@ -182,9 +182,14 @@
                 <h2 class="kids-font font-bold text-xl flex items-center gap-2">
                     <span>💬</span> Chat
                 </h2>
-                <button onclick="togglePanel('right-panel')" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="clearChatHistory()" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors" title="Clear Chat">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                    <button onclick="togglePanel('right-panel')" class="bg-white/20 rounded-full p-2 hover:bg-white/40 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
             </div>
 
             <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"></div>
@@ -209,6 +214,17 @@
             <div class="flex gap-4">
                 <button onclick="checkParentGate()" class="btn-bubbly flex-1 py-5 bg-blue-500 text-white rounded-[25px] font-bold text-xl">Enter</button>
                 <button onclick="closeModals()" class="btn-bubbly px-8 py-5 bg-slate-100 text-slate-400 rounded-[25px] font-bold">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="fixed inset-0 modal-overlay hidden flex items-center justify-center p-4">
+        <div class="kids-glass p-10 rounded-[50px] max-w-sm w-full text-center space-y-8 border-8 border-red-400 shadow-2xl">
+            <h2 class="kids-font text-3xl text-red-500">Clear Chat? 🗑️</h2>
+            <p class="font-bold text-lg text-slate-600">Are you sure you want to delete all our messages?</p>
+            <div class="flex gap-4">
+                <button onclick="executeClearChat()" class="btn-bubbly flex-1 py-4 bg-red-500 text-white rounded-[25px] font-bold">Yes, Clear</button>
+                <button onclick="closeModals()" class="btn-bubbly flex-1 py-4 bg-slate-100 text-slate-400 rounded-[25px] font-bold">Cancel</button>
             </div>
         </div>
     </div>
@@ -244,8 +260,11 @@
                         <select id="voice-selector" class="w-full p-4 bg-yellow-50 border-2 border-yellow-100 rounded-2xl outline-none focus:border-yellow-400 font-semibold text-sm">
                         </select>
                     </div>
-                    <div class="p-6 bg-pink-50 rounded-[30px] border-2 border-pink-100">
-                        <p class="text-xs text-pink-400 leading-relaxed font-medium italic">All audio is processed locally on your device for maximum privacy.</p>
+                    <div class="space-y-4">
+                        <div class="p-6 bg-pink-50 rounded-[30px] border-2 border-pink-100">
+                            <p class="text-xs text-pink-400 leading-relaxed font-medium italic">All data is saved privately in your browser storage.</p>
+                        </div>
+                        <button onclick="clearChatHistory()" class="btn-bubbly w-full py-4 bg-red-100 text-red-500 rounded-2xl font-bold border-2 border-red-200">🗑️ Clear Chat History</button>
                     </div>
                 </div>
             </div>
@@ -271,7 +290,13 @@
 
     <script>
         // --- GLOBAL STATE & CONFIG ---
-        let studyContext = "";
+        const STORAGE_KEYS = {
+            CONFIG: 'mumaa_v2_config',
+            CHATS: 'mumaa_v2_chats',
+            STUDY: 'mumaa_v2_study'
+        };
+
+        let studyContext = localStorage.getItem(STORAGE_KEYS.STUDY) || "";
         let isListening = false;
         let isSpeaking = false;
         let isThinking = false;
@@ -280,6 +305,7 @@
         let currentUtterance = null;
         let speechUnlocked = false; 
         
+        // Initial config state
         let parentConfig = {
             kidName: "",
             kidAge: "",
@@ -287,6 +313,14 @@
             learningGoal: "",
             preferredVoiceName: ""
         };
+
+        // Load saved config
+        const savedConfig = localStorage.getItem(STORAGE_KEYS.CONFIG);
+        if (savedConfig) {
+            try {
+                parentConfig = { ...parentConfig, ...JSON.parse(savedConfig) };
+            } catch(e) { console.error("Config load error", e); }
+        }
 
         let gateCorrectAnswer = 0;
 
@@ -318,12 +352,22 @@
             window.addEventListener('resize', onWindowResize);
             animate();
             
+            // Initialization Logic
             setTimeout(() => {
                 const loader = document.getElementById('loader');
                 if (loader) {
                     loader.classList.add('opacity-0');
                     setTimeout(() => loader.style.display = 'none', 500);
                 }
+                
+                // Populate UI from state
+                document.getElementById('study-material').value = studyContext;
+                document.getElementById('kid-name').value = parentConfig.kidName;
+                document.getElementById('kid-age').value = parentConfig.kidAge;
+                document.getElementById('kid-interests').value = parentConfig.kidInterests;
+                document.getElementById('learning-goal').value = parentConfig.learningGoal;
+                
+                loadChatHistory();
                 populateVoiceList();
             }, 2000);
         }
@@ -497,6 +541,7 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        // --- PARENT SECURITY ---
         function openParentGate() {
             const n1 = Math.floor(Math.random() * 10) + 12;
             const n2 = Math.floor(Math.random() * 8) + 2;
@@ -529,23 +574,27 @@
             if (voices.length > 0) {
                 selector.innerHTML = voices
                     .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(v => `<option value="${v.name}" ${v.default ? 'selected' : ''}>${v.name} (${v.lang})</option>`)
+                    .map(v => `<option value="${v.name}" ${v.name === parentConfig.preferredVoiceName ? 'selected' : ''}>${v.name} (${v.lang})</option>`)
                     .join('');
                 voicesLoaded = true;
             }
         }
 
+        // Essential for MacBook/Safari: Aggressive "Handshake"
         function unlockSpeech() {
-            if (speechUnlocked) return;
             try {
+                // macOS likes a resume call before cancel
                 window.speechSynthesis.resume();
                 window.speechSynthesis.cancel();
-                const silent = new SpeechSynthesisUtterance(" ");
-                silent.volume = 0;
+                
+                // Speak a near-silent period to prime the hardware
+                const silent = new SpeechSynthesisUtterance(".");
+                silent.volume = 0.001; 
                 window.speechSynthesis.speak(silent);
+                
                 speechUnlocked = true;
-                console.log("Audio unlocked");
-            } catch(e) { console.error("Audio unlock failed", e); }
+                console.log("Audio Handshake Successful");
+            } catch(e) { console.error("Audio handshake failed", e); }
         }
 
         function saveParentSettings() {
@@ -557,11 +606,39 @@
                 learningGoal: document.getElementById('learning-goal').value.trim(),
                 preferredVoiceName: document.getElementById('voice-selector').value
             };
+            localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(parentConfig));
             closeModals();
             addChatMessage("Sync complete! Mama is now ready for our adventure.", "ai");
             speak(`Settings sync successful. Hello there! Mama is ready to help now.`);
         }
 
+        // --- STORAGE HELPERS ---
+        function loadChatHistory() {
+            const container = document.getElementById('chat-container');
+            container.innerHTML = "";
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
+            history.forEach(chat => {
+                renderChatMessage(chat.text, chat.role, false);
+            });
+            container.scrollTop = container.scrollHeight;
+            
+            if (history.length === 0) {
+                const welcome = `Hi there, sweetheart! I'm Mumaa. I'm so glad you're here. What would you like to learn or talk about today?`;
+                addChatMessage(welcome, 'ai');
+            }
+        }
+
+        function clearChatHistory() {
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function executeClearChat() {
+            localStorage.setItem(STORAGE_KEYS.CHATS, "[]");
+            loadChatHistory();
+            closeModals();
+        }
+
+        // --- VOICE & CONVERSATION ---
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'en-US';
 
@@ -610,8 +687,6 @@
             statusTag.style.opacity = "1";
             statusTag.classList.add('thinking-bounce');
 
-            studyContext = document.getElementById('study-material').value.trim();
-
             const prompt = `You are Mumaa, a loving teacher. Kid: ${parentConfig.kidName}, Age: ${parentConfig.kidAge}. Notes: ${studyContext || "None"}. Rules: NO EMOJIS. Motherly tone. 2-3 sentences max. Question: ${userText}`;
             
             try {
@@ -619,7 +694,6 @@
                 const aiMsg = response.toString();
                 addChatMessage(aiMsg, 'ai');
                 
-                // Clear Thinking state BEFORE speaking
                 isThinking = false;
                 statusTag.classList.remove('thinking-bounce');
                 statusTag.style.opacity = "0";
@@ -636,11 +710,10 @@
         async function speak(text) {
             if (!text) return;
             return new Promise((resolve) => {
-                // Ensure engine is active
+                // Force engine awake for MacBook
                 window.speechSynthesis.resume();
                 window.speechSynthesis.cancel();
 
-                // Safety timeout: forced unblock after 10 seconds
                 const safetyTimeout = setTimeout(() => {
                     isSpeaking = false;
                     document.getElementById('status-tag').style.opacity = "0";
@@ -648,8 +721,10 @@
                 }, 10000);
 
                 setTimeout(() => {
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    currentUtterance = utterance; // Prevent garbage collection
+                    // Clean text (remove markdown-like punctuation that confuses some TTS engines)
+                    const cleanText = text.replace(/[*_#]/g, '');
+                    const utterance = new SpeechSynthesisUtterance(cleanText);
+                    currentUtterance = utterance;
 
                     const voices = window.speechSynthesis.getVoices();
                     let targetVoice = voices.find(v => v.name === parentConfig.preferredVoiceName);
@@ -696,21 +771,31 @@
 
                     window.speechSynthesis.speak(utterance);
                     
-                    // Keep Chrome's engine alive
+                    // Essential for Chrome/Safari on macOS: Continuous wake-up
                     const resumeInt = setInterval(() => {
                         if (isSpeaking) window.speechSynthesis.resume();
                         else clearInterval(resumeInt);
-                    }, 2000);
+                    }, 1500);
 
-                }, 150);
+                }, 100);
             });
         }
 
         function addChatMessage(text, role) {
+            renderChatMessage(text, role, true);
+            
+            // Persist to storage
+            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
+            history.push({ text, role });
+            if (history.length > 100) history.shift(); 
+            localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(history));
+        }
+
+        function renderChatMessage(text, role, animate) {
             const container = document.getElementById('chat-container');
             if (!container) return;
             const div = document.createElement('div');
-            div.className = `p-4 text-sm font-bold shadow-md animate-in fade-in slide-in-from-bottom-3 duration-500 ${role === 'user' ? 'chat-bubble-user ml-10' : 'chat-bubble-ai mr-10'}`;
+            div.className = `p-4 text-sm font-bold shadow-md ${animate ? 'animate-in fade-in slide-in-from-bottom-3 duration-500' : ''} ${role === 'user' ? 'chat-bubble-user ml-10' : 'chat-bubble-ai mr-10'}`;
             div.innerText = text;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
@@ -719,6 +804,8 @@
         function updateContext() {
             unlockSpeech();
             studyContext = document.getElementById('study-material').value.trim();
+            localStorage.setItem(STORAGE_KEYS.STUDY, studyContext);
+            
             const btn = document.getElementById('update-btn');
             if (btn) {
                 btn.classList.replace('bg-blue-500', 'bg-green-500');
@@ -760,6 +847,9 @@
                 if (e.key === 'Enter') sendTextMessage();
             });
         }
+
+        // Global MacBook Unlock listener
+        document.body.addEventListener('click', unlockSpeech, { once: true });
 
         if (typeof window.speechSynthesis !== 'undefined') {
             window.speechSynthesis.onvoiceschanged = populateVoiceList;
