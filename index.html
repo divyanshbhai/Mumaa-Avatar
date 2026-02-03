@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mumaa - Your AI Mama</title>
+    <title>Mumaa - Your AI Mama (Beta)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- STABLE: Reverted to r128 for maximum compatibility -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -17,12 +17,13 @@
             --kids-pink: #FF6B6B;
             --kids-blue: #6BCBFF;
             --kids-green: #4D96FF;
+            --brand-purple: #8B5CF6;
         }
 
         body {
             font-family: 'Quicksand', sans-serif;
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; /* App container handles internal scrolling */
             background-color: #fdf4ff;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -38,6 +39,58 @@
             width: 100%;
             height: 100%;
             z-index: 0;
+            transition: filter 1s ease;
+        }
+
+        /* LANDING PAGE STYLES */
+        #landing-page {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 60; /* Above everything */
+            background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(220, 238, 255, 0.8) 100%);
+            backdrop-filter: blur(8px); /* Increased blur for readability */
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.5s ease;
+        }
+
+        .landing-hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border-radius: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .comparison-row {
+            transition: background-color 0.3s ease;
+        }
+        .comparison-row:hover {
+            background-color: rgba(255,255,255,0.6);
+        }
+
+        .app-ui {
+            opacity: 0;
+            transition: opacity 1s ease 0.5s; /* Delay appearance */
+            pointer-events: none;
+        }
+        .app-visible {
+            opacity: 1;
+            pointer-events: auto;
         }
 
         /* Glassmorphism Panels */
@@ -153,6 +206,11 @@
             
             .reopen-handle { top: auto; bottom: 100px; transform: none; }
             .reopen-visible { animation: popUpMobile 0.4s ease; }
+            
+            /* Landing page mobile */
+            .landing-content { padding-top: 2rem; }
+            .landing-hero { flex-direction: column; text-align: center; }
+            .landing-text { width: 100%; }
         }
     </style>
 </head>
@@ -160,13 +218,206 @@
 
     <div id="canvas-container"></div>
 
-    <!-- Reopen Buttons (Initially Hidden) -->
-    <button id="reopen-left" onclick="togglePanel('left-panel')" class="reopen-handle left-0 kids-glass p-4 rounded-r-3xl text-2xl btn-bubbly border-l-0 shadow-lg text-blue-500 hover:text-blue-600">📚</button>
-    <button id="reopen-right" onclick="togglePanel('right-panel')" class="reopen-handle right-0 kids-glass p-4 rounded-l-3xl text-2xl btn-bubbly border-r-0 shadow-lg text-pink-500 hover:text-pink-600">💬</button>
+    <!-- LANDING PAGE OVERLAY -->
+    <div id="landing-page" class="flex flex-col items-center">
+        <!-- Nav -->
+        <nav class="w-full max-w-7xl flex justify-between items-center p-6 md:p-8 sticky top-0 z-50 bg-white/30 backdrop-blur-md border-b border-white/40">
+            <div class="flex items-center gap-2">
+                <span class="kids-font text-2xl text-slate-700 font-bold">Mumaa AI</span>
+                <span class="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide border border-blue-200">Public Beta</span>
+            </div>
+            <div class="hidden md:flex gap-8 font-bold text-slate-500 text-sm tracking-wide">
+                <a href="#features" class="hover:text-pink-500 transition-colors">FEATURES</a>
+                <a href="#comparison" class="hover:text-pink-500 transition-colors">MUMAA VS OTHERS</a>
+                <a href="#roadmap" class="hover:text-pink-500 transition-colors">ROADMAP</a>
+            </div>
+            <button onclick="startApp()" class="btn-bubbly bg-slate-800 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:bg-slate-700 border-2 border-slate-600">Try Beta</button>
+        </nav>
 
-    <!-- Main Layout -->
-    <div class="relative z-10 w-full h-screen flex flex-col md:flex-row pointer-events-none p-2 md:p-4 gap-4 overflow-hidden">
+        <!-- Hero Section -->
+        <div class="w-full max-w-7xl px-6 flex flex-col md:flex-row items-center justify-between min-h-[75vh] relative">
+            <div class="landing-text w-full md:w-1/2 space-y-6 z-10 pt-10 md:pt-0 text-center md:text-left">
+                <div class="inline-block bg-yellow-100 text-yellow-700 font-bold px-4 py-1 rounded-full text-sm border border-yellow-200 mb-2">
+                    ✨ Introducing Beta v1.0
+                </div>
+                <h1 class="kids-font text-5xl md:text-7xl text-slate-800 leading-tight">
+                    Your Personal <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500">AI Parenting Sidekick</span>
+                </h1>
+                <p class="text-lg md:text-xl text-slate-600 leading-relaxed font-semibold max-w-lg mx-auto md:mx-0">
+                    Not just a chatbot. Mumaa is an emotionally intelligent companion designed to grow with your child, remembering what matters and keeping them safe.
+                </p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 pt-6 justify-center md:justify-start">
+                    <button onclick="startApp()" class="btn-bubbly bg-gradient-to-r from-pink-500 to-purple-500 text-white px-8 py-4 rounded-full font-bold text-xl shadow-xl flex items-center justify-center gap-2 border-4 border-white/50">
+                        Launch App <span>🚀</span>
+                    </button>
+                    <a href="#features" class="btn-bubbly bg-white text-slate-600 px-8 py-4 rounded-full font-bold text-xl shadow-lg border-2 border-white flex items-center justify-center">
+                        Learn More
+                    </a>
+                </div>
+                <p class="text-xs text-slate-400 font-bold mt-4 uppercase tracking-wider">
+                    * No Sign-up Required for Demo
+                </p>
+            </div>
+            <!-- Spacer to let the 3D robot show through on the right -->
+            <div class="w-full md:w-1/2 h-64 md:h-auto"></div>
+        </div>
+
+        <!-- Section 2: Core Advantages -->
+        <div id="features" class="w-full max-w-7xl px-6 py-20">
+            <div class="text-center mb-16">
+                <h2 class="kids-font text-4xl md:text-5xl text-blue-500 mb-4">Why Parents ❤️ Mumaa</h2>
+                <p class="text-slate-500 font-bold text-lg max-w-2xl mx-auto">We built Mumaa because standard AI feels like a textbook. Kids need a friend.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div class="feature-card p-8 flex flex-col items-center text-center space-y-4">
+                    <div class="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center text-4xl shadow-inner border-2 border-pink-200">💖</div>
+                    <h3 class="kids-font text-2xl text-slate-700">Emotional IQ</h3>
+                    <p class="text-slate-600 font-medium">Mumaa detects tone. If your child is sad, she comforts. If they are excited, she celebrates. She's programmed for empathy, not just facts.</p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="feature-card p-8 flex flex-col items-center text-center space-y-4 border-blue-300 transform md:-translate-y-4">
+                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-4xl shadow-inner border-2 border-blue-200">🗣️</div>
+                    <h3 class="kids-font text-2xl text-slate-700">Voice-First Design</h3>
+                    <p class="text-slate-600 font-medium">Kids can't always type. Mumaa speaks naturally and listens attentively, making interaction seamless for toddlers and pre-readers.</p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="feature-card p-8 flex flex-col items-center text-center space-y-4">
+                    <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center text-4xl shadow-inner border-2 border-yellow-200">🧠</div>
+                    <h3 class="kids-font text-2xl text-slate-700">Long-Term Memory</h3>
+                    <p class="text-slate-600 font-medium">Using RAG technology, Mumaa remembers names, favorite toys, and past stories. She doesn't reset every session like other bots.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Comparison (The "Why" Section) -->
+        <div id="comparison" class="w-full bg-white/40 backdrop-blur-lg py-20 border-y-4 border-white/50">
+            <div class="max-w-5xl mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="kids-font text-4xl text-slate-800">Mumaa vs. Generic AI</h2>
+                    <p class="text-slate-500 font-bold">Why dedicated parenting AI matters.</p>
+                </div>
+
+                <div class="bg-white rounded-[40px] shadow-xl overflow-hidden border-4 border-white">
+                    <div class="grid grid-cols-3 bg-slate-50 border-b-2 border-slate-100 p-4 font-bold text-slate-400 text-sm uppercase tracking-wider">
+                        <div class="text-center">Feature</div>
+                        <div class="text-center text-slate-500">Generic AI (ChatGPT)</div>
+                        <div class="text-center text-pink-500">Mumaa AI</div>
+                    </div>
+
+                    <!-- Row 1 -->
+                    <div class="grid grid-cols-3 p-6 comparison-row border-b border-slate-100 items-center">
+                        <div class="font-bold text-slate-700">Tone</div>
+                        <div class="text-center text-slate-500 text-sm">Formal, Encyclopedic</div>
+                        <div class="text-center text-pink-500 font-bold bg-pink-50 rounded-full py-1">Warm, Playful</div>
+                    </div>
+
+                    <!-- Row 2 -->
+                    <div class="grid grid-cols-3 p-6 comparison-row border-b border-slate-100 items-center">
+                        <div class="font-bold text-slate-700">Safety Guardrails</div>
+                        <div class="text-center text-slate-500 text-sm">General Filters</div>
+                        <div class="text-center text-green-500 font-bold bg-green-50 rounded-full py-1">Strict Child-Safe Mode</div>
+                    </div>
+
+                    <!-- Row 3 -->
+                    <div class="grid grid-cols-3 p-6 comparison-row border-b border-slate-100 items-center">
+                        <div class="font-bold text-slate-700">Parental Dashboard</div>
+                        <div class="text-center text-slate-300 text-2xl">✕</div>
+                        <div class="text-center text-blue-500 text-2xl">✓</div>
+                    </div>
+
+                    <!-- Row 4 -->
+                    <div class="grid grid-cols-3 p-6 comparison-row items-center">
+                        <div class="font-bold text-slate-700">Personalization</div>
+                        <div class="text-center text-slate-500 text-sm">Session Based</div>
+                        <div class="text-center text-purple-500 font-bold bg-purple-50 rounded-full py-1">Persistent Memory</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Roadmap / Goals -->
+        <div id="roadmap" class="w-full max-w-6xl px-6 py-24 mb-20">
+            <h2 class="kids-font text-4xl md:text-5xl text-center text-purple-500 mb-16">Future Goals Roadmap 🚀</h2>
+            
+            <div class="relative">
+                <!-- Connecting Line (Desktop) -->
+                <div class="hidden md:block absolute top-1/2 left-0 w-full h-2 bg-slate-200 -z-10 rounded-full"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <!-- Step 1 -->
+                    <div class="relative bg-white/80 p-6 rounded-3xl shadow-lg border-2 border-green-400 md:mt-0">
+                        <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">CURRENT</div>
+                        <div class="text-4xl mb-2 text-center">🌱</div>
+                        <h3 class="font-bold text-xl text-center text-slate-700 mb-2">Beta Phase</h3>
+                        <ul class="text-sm text-slate-600 space-y-2">
+                            <li>✓ Core Voice Chat</li>
+                            <li>✓ Basic Memory</li>
+                            <li>✓ Parent Dashboard</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="relative bg-white/60 p-6 rounded-3xl shadow-md border-2 border-white grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all hover:-translate-y-2">
+                        <div class="text-4xl mb-2 text-center">🎨</div>
+                        <h3 class="font-bold text-xl text-center text-slate-700 mb-2">Vision Update</h3>
+                        <ul class="text-sm text-slate-600 space-y-2">
+                            <li>• Image Recognition</li>
+                            <li>• "Draw with Mumaa"</li>
+                            <li>• Emotion detection via camera</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="relative bg-white/60 p-6 rounded-3xl shadow-md border-2 border-white grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all hover:-translate-y-2">
+                        <div class="text-4xl mb-2 text-center">📱</div>
+                        <h3 class="font-bold text-xl text-center text-slate-700 mb-2">Native App</h3>
+                        <ul class="text-sm text-slate-600 space-y-2">
+                            <li>• iOS & Android App</li>
+                            <li>• Offline Mode</li>
+                            <li>• Screen time limits</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div class="relative bg-white/60 p-6 rounded-3xl shadow-md border-2 border-white grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all hover:-translate-y-2">
+                        <div class="text-4xl mb-2 text-center">🏡</div>
+                        <h3 class="font-bold text-xl text-center text-slate-700 mb-2">Family Hub</h3>
+                        <ul class="text-sm text-slate-600 space-y-2">
+                            <li>• Sibling Profiles</li>
+                            <li>• Family Calendar Sync</li>
+                            <li>• Daily Routine Helper</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="w-full bg-slate-800 text-white py-12 rounded-t-[50px] mt-auto text-center">
+            <h2 class="kids-font text-3xl mb-4">Ready to meet Mumaa?</h2>
+            <button onclick="startApp()" class="btn-bubbly bg-pink-500 text-white px-10 py-4 rounded-full font-bold text-xl shadow-lg border-4 border-white/20 hover:bg-pink-400 mb-8">
+                Start Beta Test
+            </button>
+            <p class="text-slate-400 text-xs">
+                © 2026 Mumaa AI. All rights reserved. <br>
+                Disclaimer: Mumaa is an AI assistant. It does not replace professional medical or psychological advice.
+            </p>
+        </div>
+    </div>
+
+    <!-- APP UI CONTAINER (Initially Hidden) -->
+    <div id="app-container" class="app-ui relative z-10 w-full h-screen flex flex-col md:flex-row pointer-events-none p-2 md:p-4 gap-4 overflow-hidden">
         
+        <!-- Reopen Buttons -->
+        <button id="reopen-left" onclick="togglePanel('left-panel')" class="reopen-handle left-0 kids-glass p-4 rounded-r-3xl text-2xl btn-bubbly border-l-0 shadow-lg text-blue-500 hover:text-blue-600">📚</button>
+        <button id="reopen-right" onclick="togglePanel('right-panel')" class="reopen-handle right-0 kids-glass p-4 rounded-l-3xl text-2xl btn-bubbly border-r-0 shadow-lg text-pink-500 hover:text-pink-600">💬</button>
+
         <!-- LEFT PANEL: Lessons -->
         <aside id="left-panel" class="w-80 panel-visible kids-glass rounded-[40px] flex flex-col overflow-hidden shadow-2xl flex-shrink-0">
             <div class="p-5 bg-yellow-400 text-white flex justify-between items-center shadow-md">
@@ -362,7 +613,8 @@
         // --- GLOBAL STATE & CONFIG ---
         const STORAGE_KEYS = { CONFIG: 'mumaa_v3_config', CHATS: 'mumaa_v3_chats', STUDY: 'mumaa_v3_study' };
         let isListening = false, isSpeaking = false, isThinking = false, serialMode = false, voicesLoaded = false, currentUtterance = null;
-        
+        let isLandingPage = true; // NEW: Track if we are on landing page
+
         // Default Config
         let parentConfig = {
             kidName: "Explorer", kidAge: "5", kidGender: "Boy", kidLanguage: "English",
@@ -381,6 +633,7 @@
         // --- THREE.JS ENGINE ---
         let scene, camera, renderer, head, mouth, leftEye, rightEye, mumaaAvatar, faceGroup;
         let clock;
+        let cameraTarget = { x: -1.5, y: 1.4, z: 3.8 }; // Initial: Shifted left so robot is on right
         
         // Scene Objects Arrays
         let floatingShapes = [];
@@ -408,7 +661,7 @@
             
             // Camera Setup
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 1.4, 3.8); // Adjusted for better view
+            camera.position.set(-1.5, 1.4, 3.8); // Start at Landing Page position (Left offset, Robot appears Right)
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -721,6 +974,13 @@
             if(!clock) return; // Wait for clock
             const t = clock.getElapsedTime();
             
+            // Camera Transition
+            if (camera) {
+                camera.position.x += (cameraTarget.x - camera.position.x) * 0.05;
+                camera.position.y += (cameraTarget.y - camera.position.y) * 0.05;
+                camera.position.z += (cameraTarget.z - camera.position.z) * 0.05;
+            }
+
             // --- Scene Animation ---
             
             // 1. Floating Shapes
@@ -786,6 +1046,25 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
+        // --- LANDING PAGE LOGIC ---
+        function startApp() {
+            isLandingPage = false;
+            // Transition UI
+            document.getElementById('landing-page').classList.add('landing-hidden');
+            document.getElementById('app-container').classList.add('app-visible');
+            
+            // Move Camera to Center for App Mode
+            cameraTarget = { x: 0, y: 1.4, z: 3.8 };
+            
+            // Start the Chat Greeting if needed
+            setTimeout(() => {
+                const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
+                if (history.length === 0) {
+                    addChatMessage(`Hi ${parentConfig.kidName}! I am Mumaa. What are we playing today?`, 'ai', false);
+                }
+            }, 1000);
+        }
+
         // --- UI INITIALIZATION ---
         function initializeUI() {
             document.getElementById('study-material').value = studyContext;
@@ -799,16 +1078,6 @@
             
             loadChatHistory();
             populateVoiceList();
-            
-            // Check existing history to prevent duplicate greetings
-            const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.CHATS) || "[]");
-            
-            if (history.length === 0) {
-                // Start with instructions visible only if no history
-                setTimeout(() => {
-                    addChatMessage(`Hi ${parentConfig.kidName}! I am Mumaa. What are we playing today?`, 'ai', false);
-                }, 1000);
-            }
         }
 
         // --- PANEL LOGIC ---
