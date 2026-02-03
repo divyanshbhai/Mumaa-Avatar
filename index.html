@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mumaa - Your AI Mama</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- STABLE: Reverted to r128 for maximum compatibility -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- Puter.js for powerful client-side AI processing -->
     <script src="https://js.puter.com/v2/"></script>
@@ -379,15 +380,28 @@
 
         // --- THREE.JS ENGINE ---
         let scene, camera, renderer, head, mouth, leftEye, rightEye, mumaaAvatar, faceGroup;
-        let clock = new THREE.Clock();
+        let clock;
         
         // Scene Objects Arrays
         let floatingShapes = [];
         let clouds = [];
 
         function initThree() {
+            // Safety check with retry logic
+            if (typeof THREE === 'undefined') {
+                console.warn("Three.js not loaded yet, retrying...");
+                setTimeout(initThree, 500); // Retry after 500ms
+                return;
+            }
+
             const container = document.getElementById('canvas-container');
             if(!container) return;
+
+            // Prevent duplicate initialization
+            if(container.childNodes.length > 0) return;
+
+            // Initialize clock inside function after library loads
+            clock = new THREE.Clock();
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xdceeff); // Soft blue sky
@@ -418,7 +432,11 @@
             scene.add(rimLight);
 
             createPlayroom();
-            createMumaa();
+            try {
+                createMumaa();
+            } catch (err) {
+                console.error("Error creating character:", err);
+            }
 
             window.addEventListener('resize', onWindowResize);
             animate();
@@ -557,109 +575,150 @@
 
         function createMumaa() {
             mumaaAvatar = new THREE.Group();
-            
+
             // Materials
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.5 }); // Lighter skin
-            const hairMat = new THREE.MeshStandardMaterial({ color: 0x2d1b0d, roughness: 0.9 });
-            const dressMat = new THREE.MeshStandardMaterial({ color: 0xff8aaf, roughness: 0.6 });
+            const whitePlasticMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.2,
+                metalness: 0.1
+            });
+            const blackGlassMat = new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                roughness: 0.0,
+                metalness: 0.8
+            });
+            const glowBlueMat = new THREE.MeshStandardMaterial({
+                color: 0x00aaff,
+                emissive: 0x00aaff,
+                emissiveIntensity: 1.5
+            });
+            const jointMat = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                roughness: 0.5
+            });
 
-            // 1. Head
-            head = new THREE.Mesh(new THREE.SphereGeometry(0.44, 64, 64), skinMat);
-            head.position.y = 1.35;
-            head.castShadow = true;
-            mumaaAvatar.add(head);
+            // --- HEAD ---
+            const headGroup = new THREE.Group();
+            headGroup.position.y = 1.2;
 
-            // 2. Hair
-            const mainHair = new THREE.Mesh(new THREE.SphereGeometry(0.46, 32, 32, 0, Math.PI * 2, 0, Math.PI / 1.7), hairMat);
-            mainHair.position.y = 1.38;
-            mumaaAvatar.add(mainHair);
-            const bun = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), hairMat);
-            bun.position.set(0, 1.75, -0.15);
-            mumaaAvatar.add(bun);
+            // 1. Main Helmet (White Sphere)
+            const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 64, 64), whitePlasticMat);
+            headGroup.add(helmet);
 
-            // 3. Face Group (Attached to head movement)
-            faceGroup = new THREE.Group();
-            faceGroup.position.y = 1.35;
-            faceGroup.position.z = 0.42; // Move to surface of face
+            // 2. Face Screen (Black Sphere intersection)
+            // Positioned slightly forward and scaled
+            const faceScreen = new THREE.Mesh(new THREE.SphereGeometry(0.38, 64, 64), blackGlassMat);
+            faceScreen.position.set(0, 0, 0.25);
+            faceScreen.scale.set(1.1, 0.9, 0.8);
+            headGroup.add(faceScreen);
 
-            // Eyes
-            function createEye() {
+            // 3. Eyes (Glowing Blue Circles)
+            leftEye = new THREE.Mesh(new THREE.CircleGeometry(0.08, 32), glowBlueMat);
+            leftEye.position.set(-0.18, 0.05, 0.54);
+            leftEye.rotation.y = -0.2;
+            headGroup.add(leftEye);
+
+            rightEye = new THREE.Mesh(new THREE.CircleGeometry(0.08, 32), glowBlueMat);
+            rightEye.position.set(0.18, 0.05, 0.54);
+            rightEye.rotation.y = 0.2;
+            headGroup.add(rightEye);
+
+            // 4. Mouth (Small dash/smile)
+            mouth = new THREE.Group();
+            // REPLACED CAPSULE with CYLINDER for compatibility
+            const mouthLine = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.05, 16), glowBlueMat);
+            mouthLine.rotation.z = Math.PI / 2;
+            mouth.add(mouthLine);
+            mouth.position.set(0, -0.15, 0.58);
+            headGroup.add(mouth);
+
+            // 5. Ear Cups / Headphones
+            const earGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.1, 32);
+            const leftEar = new THREE.Mesh(earGeo, jointMat);
+            leftEar.rotation.z = Math.PI / 2;
+            leftEar.position.set(-0.48, 0, 0);
+            headGroup.add(leftEar);
+
+            const rightEar = leftEar.clone();
+            rightEar.position.set(0.48, 0, 0);
+            headGroup.add(rightEar);
+
+            // Fin on top
+            // REPLACED CAPSULE with CYLINDER for compatibility
+            const fin = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 16), jointMat);
+            fin.rotation.x = Math.PI / 2;
+            fin.position.set(0, 0.48, -0.1);
+            headGroup.add(fin);
+
+            mumaaAvatar.add(headGroup);
+            // Reassign global vars for animation
+            head = headGroup; 
+            faceGroup = headGroup;
+
+            // --- BODY ---
+            const torso = new THREE.Mesh(new THREE.SphereGeometry(0.35, 32, 32), whitePlasticMat);
+            torso.position.y = 0.5;
+            torso.scale.y = 1.2;
+            mumaaAvatar.add(torso);
+
+            // Chest Plate
+            const chestPlate = new THREE.Mesh(new THREE.CircleGeometry(0.15, 32), whitePlasticMat);
+            chestPlate.position.set(0, 0.5, 0.32);
+            mumaaAvatar.add(chestPlate);
+
+            // Arms Helper
+            function createArm(x, rotZ) {
                 const group = new THREE.Group();
-                // Sclera
-                const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.07, 32, 32), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-                eyeWhite.scale.z = 0.6; // Flatten slightly
-                group.add(eyeWhite);
-                
-                // Iris
-                const iris = new THREE.Mesh(new THREE.CircleGeometry(0.035, 32), new THREE.MeshStandardMaterial({ color: 0x5D4037 }));
-                iris.position.z = 0.065; 
-                group.add(iris);
-                
-                // Pupil
-                const pupil = new THREE.Mesh(new THREE.CircleGeometry(0.015, 32), new THREE.MeshStandardMaterial({ color: 0x000000 }));
-                pupil.position.z = 0.066; 
-                group.add(pupil);
-                
-                // Highlight
-                const shine = new THREE.Mesh(new THREE.CircleGeometry(0.008, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-                shine.position.set(0.015, 0.015, 0.067);
-                group.add(shine);
-                
+                const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.12, 32, 32), jointMat);
+                group.add(shoulder);
+
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.4, 32), whitePlasticMat);
+                arm.position.y = -0.25;
+                group.add(arm);
+
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(0.1, 32, 32), jointMat);
+                hand.position.y = -0.5;
+                group.add(hand);
+
+                group.position.set(x, 0.65, 0);
+                group.rotation.z = rotZ;
                 return group;
             }
 
-            leftEye = createEye();
-            leftEye.position.set(-0.15, 0.05, 0.0);
-            leftEye.rotation.y = -0.15;
-            faceGroup.add(leftEye);
+            const leftArm = createArm(-0.4, 0.2);
+            mumaaAvatar.add(leftArm);
 
-            rightEye = createEye();
-            rightEye.position.set(0.15, 0.05, 0.0);
-            rightEye.rotation.y = 0.15;
-            faceGroup.add(rightEye);
+            const rightArm = createArm(0.4, -0.2);
+            mumaaAvatar.add(rightArm);
 
-            // Glasses
-            const frameMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.2, roughness: 0.2 });
-            const lFrame = new THREE.Mesh(new THREE.TorusGeometry(0.10, 0.012, 16, 40), frameMat);
-            lFrame.position.set(-0.15, 0.05, 0.05);
-            lFrame.rotation.y = -0.15;
-            faceGroup.add(lFrame);
+            // Legs Helper
+            function createLeg(x) {
+                const group = new THREE.Group();
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.4, 32), whitePlasticMat);
+                leg.position.y = -0.2;
+                group.add(leg);
 
-            const rFrame = lFrame.clone();
-            rFrame.position.set(0.15, 0.05, 0.05);
-            rFrame.rotation.y = 0.15;
-            faceGroup.add(rFrame);
+                // REPLACED CAPSULE with CYLINDER for compatibility
+                const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.15, 32), jointMat);
+                foot.position.set(0, -0.45, 0.05);
+                group.add(foot);
 
-            const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8), frameMat);
-            bridge.rotation.z = Math.PI / 2;
-            bridge.position.set(0, 0.05, 0.08); // Pushed out slightly
-            faceGroup.add(bridge);
+                group.position.set(x, 0.2, 0);
+                return group;
+            }
 
-            // Nose
-            const nose = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), skinMat);
-            nose.position.set(0, -0.05, 0.04);
-            nose.scale.set(1, 1.2, 0.8);
-            faceGroup.add(nose);
+            const leftLeg = createLeg(-0.2);
+            mumaaAvatar.add(leftLeg);
 
-            // Mouth
-            mouth = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.015, 16, 32, Math.PI), new THREE.MeshStandardMaterial({ color: 0xd65a5a }));
-            mouth.position.set(0, -0.22, 0.02);
-            mouth.rotation.x = Math.PI;
-            faceGroup.add(mouth);
-
-            mumaaAvatar.add(faceGroup);
-
-            // Body
-            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.6, 1.3, 32), dressMat);
-            torso.position.y = 0.4;
-            torso.castShadow = true;
-            mumaaAvatar.add(torso);
+            const rightLeg = createLeg(0.2);
+            mumaaAvatar.add(rightLeg);
 
             scene.add(mumaaAvatar);
         }
 
         function animate() {
             requestAnimationFrame(animate);
+            if(!clock) return; // Wait for clock
             const t = clock.getElapsedTime();
             
             // --- Scene Animation ---
@@ -680,7 +739,7 @@
             });
 
             // --- Mumaa Animation ---
-            if (mumaaAvatar) {
+            if (mumaaAvatar && head) {
                 // Gentle breathing
                 mumaaAvatar.position.y = Math.sin(t * 1.5) * 0.01;
                 
@@ -691,20 +750,14 @@
                 head.rotation.y = rotY;
                 head.rotation.x = rotX;
                 
-                // Parenting rotation to face group
-                faceGroup.rotation.y = rotY;
-                faceGroup.rotation.x = rotX;
-                
-                // Thinking animation
+                // Thinking animation (Head tilt)
                 if (isThinking) {
-                    head.rotation.z = Math.sin(t * 10) * 0.05;
-                    faceGroup.rotation.z = Math.sin(t * 10) * 0.05;
+                    head.rotation.z = Math.sin(t * 8) * 0.05;
                 } else {
                     head.rotation.z = 0;
-                    faceGroup.rotation.z = 0;
                 }
 
-                // Blinking
+                // Blinking (Scale eyes vertically)
                 const blink = Math.sin(t * 0.5); // Slow cycle
                 if (blink > 0.98) {
                     leftEye.scale.y = 0.1;
@@ -718,8 +771,8 @@
             // Lip sync simulation
             if (isSpeaking && mouth) {
                 const volume = (Math.sin(t * 20) + 1) / 2; // 0 to 1
-                mouth.scale.y = 1 + (volume * 1.5);
-                mouth.scale.x = 1 + (volume * 0.2);
+                mouth.scale.x = 1 + (volume * 0.5); // Widen mouth
+                mouth.scale.y = 1 + (volume * 0.2); // Open slightly
             } else if (mouth) {
                 mouth.scale.set(1, 1, 1);
             }
@@ -803,8 +856,8 @@
             
             // Prompt Engineering
             const prompt = `
-            ROLE: You are Mumaa, a loving AI mother for ${parentConfig.kidName} (${parentConfig.kidGender}, Age ${age}).
-            TONE: Warm, patient, safe. Language: ${parentConfig.kidLanguage}.
+            ROLE: You are Mumaa, a loving AI robot friend for ${parentConfig.kidName} (${parentConfig.kidGender}, Age ${age}).
+            TONE: Warm, playful, robotic but sweet. Language: ${parentConfig.kidLanguage}.
             INTERESTS: ${parentConfig.kidLikes}. AVOID: ${parentConfig.kidDislikes}.
             GOAL: ${parentConfig.kidMission}.
             
@@ -846,7 +899,7 @@
                 console.error("AI Error:", err);
                 isThinking = false;
                 updateStatus("Error", false);
-                const fallback = "Oh my, I got a little distracted! Can you say that again, sweetie?";
+                const fallback = "Beep boop! My circuits got fuzzy. Say that again?";
                 addChatMessage(fallback, 'ai');
                 await speak(fallback);
             }
@@ -894,7 +947,7 @@
             localStorage.setItem(STORAGE_KEYS.CHATS, "[]");
             document.getElementById('chat-container').innerHTML = "";
             closeModals();
-            addChatMessage(`Memory cleared! Hi ${parentConfig.kidName}!`, 'ai');
+            addChatMessage(`Memory cleared! Beep Boop!`, 'ai');
         }
 
         function sendTextMessage() {
